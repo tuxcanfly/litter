@@ -16,6 +16,23 @@ HELP_TEXT = [
     # Add more keybindings here
 ]
 
+BOOKMARKS_FILE = "bookmarks.txt"
+
+def get_bookmarks():
+    try:
+        with open(BOOKMARKS_FILE, 'r') as f:
+            return [line.strip() for line in f.readlines()]
+    except FileNotFoundError:
+        with open(BOOKMARKS_FILE, 'w') as f:  # Create the file if it doesn't exist.
+            pass
+        return []
+
+def save_bookmark(url):
+    bookmarks = get_bookmarks()
+    if url not in bookmarks:
+        with open(BOOKMARKS_FILE, 'a') as f:
+            f.write(url + '\n')
+
 def help_overlay(main_widget):
     help_content = urwid.Text("\n".join(HELP_TEXT))
     help_fill = urwid.Filler(help_content, 'middle')
@@ -95,7 +112,7 @@ def handle_input(key, edit_widget, main_loop):
         main_loop.widget = new_view
         main_loop.user_data['edit_widget'] = new_edit
         assign_loop_to_buttons(main_loop)
-    elif key == 'b' and history_stack:
+    elif key == 'backspace' and history_stack:
         # Remove the current URL
         history_stack.pop()
         
@@ -116,6 +133,9 @@ def handle_input(key, edit_widget, main_loop):
             main_widget_original = main_loop.widget  # Store the original main widget
             main_loop.widget = help_overlay(main_loop.widget)
             is_help_visible = True
+    elif key == 'b':
+        current_url = main_loop.widget.footer.original_widget.text  # Extracting the current URL from status bar
+        save_bookmark(current_url)
 
 def link_pressed(button, link):
     loop = button._loop  # Retrieve the main loop reference
@@ -125,7 +145,7 @@ def link_pressed(button, link):
     loop.user_data['edit_widget'] = new_edit
 
 def main():
-    url = "https://thejaswi.info"  # default starting page
+    url = "https://example.com"  # default starting page
     history_stack.append(url)  # Add the URL to history
     main_widget, edit_widget = article_view(url)
 
