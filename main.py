@@ -64,7 +64,7 @@ def fetch_and_clean_article(url):
 
         return plain_text, links, page_title
     except requests.RequestException:
-        return "Error: Unable to fetch the content.", []
+        return "Error: Unable to fetch the content.", [], ""
 
 def article_view(url):
     article_content, links, page_title = fetch_and_clean_article(url)
