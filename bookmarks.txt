@@ -1,2 +1,3 @@
 https://example.com
 https://thejaswi.info
+https://www.iana.org/domains/example

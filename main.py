@@ -10,8 +10,9 @@ main_widget_original = None
 HELP_TEXT = [
     "q or Q or esc: Quit the browser",
     "i: Jump to the URL bar",
+    "b: Bookmark current URL",
     "enter: Load the URL",
-    "b: Go back to the previous page",
+    "backspace: Go back to the previous page",
     "?: Help screen",
     # Add more keybindings here
 ]
@@ -37,7 +38,7 @@ def help_overlay(main_widget):
     help_content = urwid.Text("\n".join(HELP_TEXT))
     help_fill = urwid.Filler(help_content, 'middle')
     help_frame = urwid.LineBox(help_fill, title="Help - Press '?' to close")
-    return urwid.Overlay(help_frame, main_widget, 'center', ('relative', 30), 'middle', ('relative', 10))
+    return urwid.Overlay(help_frame, main_widget, 'center', ('relative', 30), 'middle', ('relative', 15))
 
 def assign_loop_to_buttons(loop):
     for widget in loop.widget.body.body:
