@@ -7,6 +7,7 @@ history_stack = []
 is_help_visible = False
 main_widget_original = None
 
+HEADERS = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'}
 HELP_TEXT = [
     "q or Q or esc: Quit the browser",
     "i: Jump to the URL bar",
@@ -47,7 +48,7 @@ def assign_loop_to_buttons(loop):
 
 def fetch_and_clean_article(url):
     try:
-        response = requests.get(url)
+        response = requests.get(url, headers=HEADERS)
         response.raise_for_status()  # Check for successful request
         doc = Document(response.text)
         page_title = doc.title()
