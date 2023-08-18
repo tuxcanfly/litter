@@ -1,9 +1,15 @@
 import requests
-from readability import Document
-from bs4 import BeautifulSoup
+import threading
 import urwid
 
-history_stack = []
+from readability import Document
+from bs4 import BeautifulSoup
+
+"""
+toy browser
+"""
+
+
 is_help_visible = False
 main_widget_original = None
 
@@ -19,6 +25,30 @@ HELP_TEXT = [
 ]
 
 BOOKMARKS_FILE = "bookmarks.txt"
+
+class History:
+    def __init__(self):
+        self.stack = []
+        self.position = -1
+
+    def add(self, url):
+        self.stack = self.stack[:self.position+1]  # Remove forward history
+        self.stack.append(url)
+        self.position += 1
+
+    def back(self):
+        if self.position > 0:
+            self.position -= 1
+            return self.stack[self.position]
+        return None
+
+    def forward(self):
+        if self.position + 1 < len(self.stack):
+            self.position += 1
+            return self.stack[self.position]
+        return None
+
+history = History()
 
 def get_bookmarks():
     try:
@@ -46,10 +76,23 @@ def assign_loop_to_buttons(loop):
         if isinstance(widget.base_widget, urwid.Button):
             widget.base_widget._loop = loop
 
+
 def fetch_and_clean_article(url):
+    """
+    Fetch and clean article from a URL.
+
+    :param url: URL of the article.
+    :return: Tuple containing plain text of the article, links, and page title.
+    """
     try:
         response = requests.get(url, headers=HEADERS)
         response.raise_for_status()  # Check for successful request
+        
+        # Additional checks for content type
+        content_type = response.headers.get('Content-Type')
+        if 'text/html' not in content_type:
+            return "Error: Content type is not HTML.", [], ""
+        
         doc = Document(response.text)
         page_title = doc.title()
         cleaned_content = doc.summary()
@@ -64,16 +107,30 @@ def fetch_and_clean_article(url):
                 links.append((a.text, a['href']))
 
         return plain_text, links, page_title
-    except requests.RequestException:
-        return "Error: Unable to fetch the content.", [], ""
+    except requests.RequestException as e:
+        return f"Error: {str(e)}", [], ""
 
-def article_view(url):
-    article_content, links, page_title = fetch_and_clean_article(url)
+def fetch_content_async(url, callback):
+    def worker():
+        content, links, title = fetch_and_clean_article(url)
+        callback(content, links, title)
+    
+    thread = threading.Thread(target=worker)
+    thread.start()
 
+def on_content_fetched(content, links, title):
+    global main_loop
+    new_view, new_edit = article_view(content, links, title)
+    main_loop.widget = new_view
+    main_loop.user_data['edit_widget'] = new_edit
+    assign_loop_to_buttons(main_loop)
+    main_loop.draw_screen()
+
+def article_view(content, links, title):
     # Represent links as (URL, displayed_text)
     txt_content = []
     link_map = {}  # To store links for navigation
-    for line in article_content.split('\n'):
+    for line in content.split('\n'):
         matching_links = [link for link in links if link[0] == line]
         if matching_links:
             displayed_text, link_url = matching_links[0]
@@ -88,7 +145,7 @@ def article_view(url):
     listbox = urwid.ListBox(walker)
 
     # Status bar with the current page title or fallback to URL if title is not available
-    status_bar_text = page_title if page_title else url
+    status_bar_text = title
     status_bar = urwid.Text(status_bar_text)
     status_bar = urwid.AttrWrap(status_bar, 'status_bar')
     
@@ -103,29 +160,18 @@ def article_view(url):
     return layout, edit
 
 def handle_input(key, edit_widget, main_loop):
-    global history_stack
+    global history
     global is_help_visible
     global main_widget_original
     if key in ('q', 'Q', 'esc'):
         raise urwid.ExitMainLoop()
     elif key == 'enter':
         new_url = edit_widget.get_edit_text()
-        history_stack.append(new_url)  # Add the URL to history
-        new_view, new_edit = article_view(new_url)
-        main_loop.widget = new_view
-        main_loop.user_data['edit_widget'] = new_edit
-        assign_loop_to_buttons(main_loop)
-    elif key == 'backspace' and history_stack:
-        # Remove the current URL
-        history_stack.pop()
-        
-        # Check if there's any URL left in the stack
-        if history_stack:
-            back_url = history_stack[-1]  # Peek at the top of the stack without popping
-            new_view, new_edit = article_view(back_url)
-            main_loop.widget = new_view
-            main_loop.user_data['edit_widget'] = new_edit
-            assign_loop_to_buttons(main_loop)
+        history.add(new_url)
+        fetch_content_async(new_url, on_content_fetched)
+    elif key == 'backspace' and history:
+        back_url = history.back()
+        fetch_content_async(back_url, on_content_fetched)
     elif key == 'i':
         main_loop.widget.set_focus('header')  # Focus on URL bar
     elif key == '?':
@@ -143,10 +189,8 @@ def handle_input(key, edit_widget, main_loop):
 
 def link_pressed(button, link):
     loop = button._loop  # Retrieve the main loop reference
-    history_stack.append(link)  # Add the clicked link to history
-    new_view, new_edit = article_view(link)
-    loop.widget = new_view
-    loop.user_data['edit_widget'] = new_edit
+    history.add(link)
+    fetch_content_async(link, on_content_fetched)
 
 def show_feedback(main_loop, message, duration_in_seconds=2):
     original_footer = main_loop.widget.footer
@@ -160,9 +204,15 @@ def restore_original_footer(main_loop, user_data):
     main_loop.widget.footer = main_loop.user_data.pop('original_footer', None)
 
 def main():
+    global main_loop
+    global history
+
     url = "https://example.com"  # default starting page
-    history_stack.append(url)  # Add the URL to history
-    main_widget, edit_widget = article_view(url)
+    history.add(url)
+
+    # Fetch initial content synchronously since it's the first load and UI is not yet running.
+    content, links, title = fetch_and_clean_article(url)
+    main_widget, edit_widget = article_view(content, links, title)
 
     palette = [
         ('status_bar', 'white', 'dark blue'),
@@ -172,13 +222,11 @@ def main():
         ('text_focused', 'white', 'dark blue')
     ]  # Define colors
 
-    # Setting up MainLoop and storing references in user_data
-    loop = urwid.MainLoop(main_widget, palette=palette, unhandled_input=lambda key: handle_input(key, edit_widget, loop))
-    loop.user_data = {'edit_widget': edit_widget, 'main_loop': loop}
-
-    assign_loop_to_buttons(loop)
-
-    loop.run()
+    # Set up MainLoop
+    main_loop = urwid.MainLoop(main_widget, palette=palette, unhandled_input=lambda key: handle_input(key, edit_widget, main_loop))
+    main_loop.user_data = {'edit_widget': edit_widget}
+    assign_loop_to_buttons(main_loop)
+    main_loop.run()
 
 if __name__ == "__main__":
     main()
