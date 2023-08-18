@@ -1,0 +1,4 @@
+requests
+readability-lxml
+urwid
+beautifulsoup4
