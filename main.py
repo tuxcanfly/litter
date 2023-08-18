@@ -1,106 +1,97 @@
-import urwid
 import requests
+from readability import Document
 from bs4 import BeautifulSoup
-import re
-from urllib.parse import urljoin
+import urwid
 
-def html_to_terminal(html: str) -> str:
-    # Define ANSI escape codes
-    BOLD = '\033[1m'
-    ITALIC = '\033[3m'
-    UNDERLINE = '\033[4m'
-    RESET = '\033[0m'
-    
-    # Replace the tags with the corresponding escape codes
-    html = re.sub(r'<b>', BOLD, html)
-    html = re.sub(r'</b>', RESET, html)
-    html = re.sub(r'<i>', ITALIC, html)
-    html = re.sub(r'</i>', RESET, html)
-    html = re.sub(r'<u>', UNDERLINE, html)
-    html = re.sub(r'</u>', RESET, html)
-    
-    # Remove any other HTML tags (for simplicity)
-    html = re.sub(r'<[^>]+>', '', html)
-    
-    return html
+def fetch_and_clean_article(url):
+    try:
+        response = requests.get(url)
+        response.raise_for_status()  # Check for successful request
+        doc = Document(response.text)
+        cleaned_content = doc.summary()
 
-def fetch_content(url: str) -> str:
-    # Fetch the content
-    response = requests.get(url)
-    html_content = response.text
-    
-    # Simplify the content using BeautifulSoup
-    soup = BeautifulSoup(html_content, 'html.parser')
-    
-    # Remove unwanted tags
-    for tag in soup(['script', 'style', 'header', 'footer', 'nav']):
-        tag.decompose()
-    
-    simplified_content = str(soup.body)
-    
-    return simplified_content
+        soup = BeautifulSoup(cleaned_content, 'html.parser')
+        plain_text = soup.get_text()
 
-def extract_links_and_create_buttons(base_url: str, content: str) -> list:
-    soup = BeautifulSoup(content, 'html.parser')
-    buttons = []
+        # Extract links and present differently
+        links = []
+        for a in soup.find_all('a'):
+            if a['href']:
+                links.append((a.text, a['href']))
 
-    for link in soup.find_all('a'):
-        href = link.get('href')
-        text = link.get_text()
+        return plain_text, links
+    except requests.RequestException:
+        return "Error: Unable to fetch the content.", []
 
-        # Convert relative URLs to absolute
-        absolute_url = urljoin(base_url, href)
+def article_view(url):
+    article_content, links = fetch_and_clean_article(url)
 
-        if absolute_url:  # Ensure absolute_url is present
-            button = urwid.Button(text, on_link_clicked, user_data=absolute_url)
-            buttons.append(button)
+    # Represent links as (URL, displayed_text)
+    txt_content = []
+    link_map = {}  # To store links for navigation
+    for line in article_content.split('\n'):
+        matching_links = [link for link in links if link[0] == line]
+        if matching_links:
+            displayed_text, link_url = matching_links[0]
+            link_map[displayed_text] = link_url  # Map text to URL
+            txt_content.append(('link', displayed_text))
+        else:
+            txt_content.append(line)
     
-    return buttons
+    items = [urwid.Text(item) if isinstance(item, str) else urwid.AttrMap(urwid.Button(item[1], on_press=link_pressed, user_data=link_map[item[1]]), 'link', focus_map='reversed') for item in txt_content]
 
-def on_link_clicked(button, href):
-    """Callback when a link button is clicked."""
-    show_page(href)
+    walker = urwid.SimpleFocusListWalker(items)
+    listbox = urwid.ListBox(walker)
 
-def show_page(url):
-    content = fetch_content(url)
+    # Status bar with the current URL
+    status_bar = urwid.Text(url)
+    status_bar = urwid.AttrWrap(status_bar, 'status_bar')
     
-    # Convert hyperlinks to clickable buttons
-    buttons = extract_links_and_create_buttons(url, content)
+    # URL bar to enter addresses
+    edit = urwid.Edit("Enter URL: ")
+    url_bar = urwid.AttrWrap(edit, 'url_bar')
     
-    # Remove the old links from the display and append the new ones
-    for widget in pile.contents:
-        if isinstance(widget[0], urwid.Button):
-            pile.contents.remove(widget)
+    # Combine listbox, status bar, and URL bar
+    layout = urwid.Frame(header=url_bar, body=listbox, footer=status_bar)
     
-    for button in buttons:
-        pile.contents.append((button, pile.options()))
-    
-    # Convert other content to terminal displayable format
-    content = re.sub(r'<a href="(.*?)">(.*?)</a>', '', content)
-    text_content = html_to_terminal(content)
-    
-    response.set_text(('I say', text_content))
 
-def on_ask_change(edit, new_edit_text):
-    """Callback when the input field is edited."""
-    response.set_text(('I say', f"Ready to fetch: {new_edit_text}"))
+    return layout, edit
 
-def on_exit_clicked(button):
-    raise urwid.ExitMainLoop()
+def handle_input(key, edit_widget, main_loop):
+    if key in ('q', 'Q', 'esc'):
+        raise urwid.ExitMainLoop()
+    elif key == 'enter':
+        new_url = edit_widget.get_edit_text()
+        new_view, new_edit = article_view(new_url)
+        main_loop.widget = new_view
+        main_loop.user_data = new_edit
 
-def on_go_clicked(button, user_data):
-    """Callback when the Go button is clicked."""
-    user_input = user_data[0].get_edit_text()
-    show_page(user_input)
+def link_pressed(button, link):
+    loop = button._loop  # Retrieve the main loop reference
+    new_view, new_edit = article_view(link)
+    loop.widget = new_view
+    loop.user_data['edit_widget'] = new_edit
 
-# UI Widgets
-ask = urwid.Edit('Enter the URL: ', '')
-response = urwid.Text(u'')
-go_button = urwid.Button(u'Go', on_go_clicked, user_data=[ask])
-exit_button = urwid.Button(u'Exit', on_exit_clicked)
-pile = urwid.Pile([ask, go_button, response, exit_button])
-fill = urwid.Filler(pile, 'top')
+def main():
+    url = "https://thejaswi.info"  # default starting page
+    main_widget, edit_widget = article_view(url)
+
+    palette = [
+        ('status_bar', 'white', 'dark blue'),
+        ('url_bar', 'black', 'light gray'),
+        ('link', 'yellow', 'black')
+    ]  # Define colors
+
+    # Setting up MainLoop and storing references in user_data
+    loop = urwid.MainLoop(main_widget, palette=palette, unhandled_input=lambda key: handle_input(key, edit_widget, loop))
+    loop.user_data = {'edit_widget': edit_widget, 'main_loop': loop}
+
+    # For all buttons (links), store the main_loop for reference
+    for widget in loop.widget.body.body:
+        if isinstance(widget.base_widget, urwid.Button):
+            widget.base_widget._loop = loop
+
+    loop.run()
 
 if __name__ == "__main__":
-    loop = urwid.MainLoop(fill)
-    loop.run()
+    main()
