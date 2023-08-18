@@ -3,6 +3,11 @@ from readability import Document
 from bs4 import BeautifulSoup
 import urwid
 
+def assign_loop_to_buttons(loop):
+    for widget in loop.widget.body.body:
+        if isinstance(widget.base_widget, urwid.Button):
+            widget.base_widget._loop = loop
+
 def fetch_and_clean_article(url):
     try:
         response = requests.get(url)
@@ -79,6 +84,7 @@ def handle_input(key, edit_widget, main_loop):
             new_view, new_edit = article_view(back_url)
             main_loop.widget = new_view
             main_loop.user_data['edit_widget'] = new_edit
+            assign_loop_to_buttons(main_loop)
 
 def link_pressed(button, link):
     loop = button._loop  # Retrieve the main loop reference
@@ -102,10 +108,7 @@ def main():
     loop = urwid.MainLoop(main_widget, palette=palette, unhandled_input=lambda key: handle_input(key, edit_widget, loop))
     loop.user_data = {'edit_widget': edit_widget, 'main_loop': loop}
 
-    # For all buttons (links), store the main_loop for reference
-    for widget in loop.widget.body.body:
-        if isinstance(widget.base_widget, urwid.Button):
-            widget.base_widget._loop = loop
+    assign_loop_to_buttons(loop)
 
     loop.run()
 
