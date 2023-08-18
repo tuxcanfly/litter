@@ -136,6 +136,7 @@ def handle_input(key, edit_widget, main_loop):
     elif key == 'b':
         current_url = main_loop.widget.footer.original_widget.text  # Extracting the current URL from status bar
         save_bookmark(current_url)
+        show_feedback(main_loop, "Bookmark saved successfully!")
 
 def link_pressed(button, link):
     loop = button._loop  # Retrieve the main loop reference
@@ -143,6 +144,17 @@ def link_pressed(button, link):
     new_view, new_edit = article_view(link)
     loop.widget = new_view
     loop.user_data['edit_widget'] = new_edit
+
+def show_feedback(main_loop, message, duration_in_seconds=2):
+    original_footer = main_loop.widget.footer
+    main_loop.user_data['original_footer'] = original_footer
+    feedback_text = urwid.Text(message)
+    feedback_bar = urwid.AttrWrap(feedback_text, 'status_bar')
+    main_loop.widget.footer = feedback_bar
+    main_loop.set_alarm_in(duration_in_seconds, restore_original_footer)
+
+def restore_original_footer(main_loop, user_data):
+    main_loop.widget.footer = main_loop.user_data.pop('original_footer', None)
 
 def main():
     url = "https://example.com"  # default starting page
