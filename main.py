@@ -46,7 +46,6 @@ def assign_loop_to_buttons(loop):
             widget.base_widget._loop = loop
 
 def fetch_and_clean_article(url):
-    print("Loading...")  # Basic textual feedback
     try:
         response = requests.get(url)
         response.raise_for_status()  # Check for successful request
