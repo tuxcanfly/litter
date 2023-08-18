@@ -50,6 +50,7 @@ def fetch_and_clean_article(url):
         response = requests.get(url)
         response.raise_for_status()  # Check for successful request
         doc = Document(response.text)
+        page_title = doc.title()
         cleaned_content = doc.summary()
 
         soup = BeautifulSoup(cleaned_content, 'html.parser')
@@ -61,12 +62,12 @@ def fetch_and_clean_article(url):
             if a['href']:
                 links.append((a.text, a['href']))
 
-        return plain_text, links
+        return plain_text, links, page_title
     except requests.RequestException:
         return "Error: Unable to fetch the content.", []
 
 def article_view(url):
-    article_content, links = fetch_and_clean_article(url)
+    article_content, links, page_title = fetch_and_clean_article(url)
 
     # Represent links as (URL, displayed_text)
     txt_content = []
@@ -85,8 +86,9 @@ def article_view(url):
     walker = urwid.SimpleFocusListWalker(items)
     listbox = urwid.ListBox(walker)
 
-    # Status bar with the current URL
-    status_bar = urwid.Text(url)
+    # Status bar with the current page title or fallback to URL if title is not available
+    status_bar_text = page_title if page_title else url
+    status_bar = urwid.Text(status_bar_text)
     status_bar = urwid.AttrWrap(status_bar, 'status_bar')
     
     # URL bar to enter addresses
