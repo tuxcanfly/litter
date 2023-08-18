@@ -70,22 +70,26 @@ def handle_input(key, edit_widget, main_loop):
         main_loop.widget = new_view
         main_loop.user_data['edit_widget'] = new_edit
     elif key == 'b' and history_stack:
-        # Implementing the "Back" functionality
-        history_stack.pop()  # Removing the current URL
+        # Remove the current URL
+        history_stack.pop()
+        
+        # Check if there's any URL left in the stack
         if history_stack:
-            back_url = history_stack.pop()  # Getting the previous URL
+            back_url = history_stack[-1]  # Peek at the top of the stack without popping
             new_view, new_edit = article_view(back_url)
             main_loop.widget = new_view
             main_loop.user_data['edit_widget'] = new_edit
 
 def link_pressed(button, link):
     loop = button._loop  # Retrieve the main loop reference
+    history_stack.append(link)  # Add the clicked link to history
     new_view, new_edit = article_view(link)
     loop.widget = new_view
     loop.user_data['edit_widget'] = new_edit
 
 def main():
     url = "https://thejaswi.info"  # default starting page
+    history_stack.append(url)  # Add the URL to history
     main_widget, edit_widget = article_view(url)
 
     palette = [
