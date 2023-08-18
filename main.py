@@ -43,7 +43,7 @@ def article_view(url):
         else:
             txt_content.append(line)
     
-    items = [urwid.Text(item) if isinstance(item, str) else urwid.AttrMap(urwid.Button(item[1], on_press=link_pressed, user_data=link_map[item[1]]), 'link', focus_map='reversed') for item in txt_content]
+    items = [urwid.AttrMap(urwid.SelectableIcon(item, 0), None, 'text_focused') if isinstance(item, str) else urwid.AttrMap(urwid.Button(item[1], on_press=link_pressed, user_data=link_map[item[1]]), 'link', focus_map='reversed') for item in txt_content]
 
     walker = urwid.SimpleFocusListWalker(items)
     listbox = urwid.ListBox(walker)
@@ -54,7 +54,7 @@ def article_view(url):
     
     # URL bar to enter addresses
     edit = urwid.Edit("Enter URL: ")
-    url_bar = urwid.AttrWrap(edit, 'url_bar')
+    url_bar = urwid.AttrMap(edit, 'url_bar', 'url_bar_focused')
     
     # Combine listbox, status bar, and URL bar
     layout = urwid.Frame(header=url_bar, body=listbox, footer=status_bar)
@@ -101,7 +101,9 @@ def main():
     palette = [
         ('status_bar', 'white', 'dark blue'),
         ('url_bar', 'black', 'light gray'),
-        ('link', 'yellow', 'black')
+        ('link', 'yellow', 'black'),
+        ('url_bar_focused', 'black', 'yellow'),
+        ('text_focused', 'white', 'dark blue')
     ]  # Define colors
 
     # Setting up MainLoop and storing references in user_data
