@@ -57,14 +57,26 @@ def article_view(url):
 
     return layout, edit
 
+history_stack = []
+
 def handle_input(key, edit_widget, main_loop):
+    global history_stack
     if key in ('q', 'Q', 'esc'):
         raise urwid.ExitMainLoop()
     elif key == 'enter':
         new_url = edit_widget.get_edit_text()
+        history_stack.append(new_url)  # Add the URL to history
         new_view, new_edit = article_view(new_url)
         main_loop.widget = new_view
-        main_loop.user_data = new_edit
+        main_loop.user_data['edit_widget'] = new_edit
+    elif key == 'b' and history_stack:
+        # Implementing the "Back" functionality
+        history_stack.pop()  # Removing the current URL
+        if history_stack:
+            back_url = history_stack.pop()  # Getting the previous URL
+            new_view, new_edit = article_view(back_url)
+            main_loop.widget = new_view
+            main_loop.user_data['edit_widget'] = new_edit
 
 def link_pressed(button, link):
     loop = button._loop  # Retrieve the main loop reference
