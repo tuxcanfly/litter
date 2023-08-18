@@ -74,6 +74,7 @@ def handle_input(key, edit_widget, main_loop):
         new_view, new_edit = article_view(new_url)
         main_loop.widget = new_view
         main_loop.user_data['edit_widget'] = new_edit
+        assign_loop_to_buttons(main_loop)
     elif key == 'b' and history_stack:
         # Remove the current URL
         history_stack.pop()
