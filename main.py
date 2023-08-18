@@ -3,12 +3,32 @@ from readability import Document
 from bs4 import BeautifulSoup
 import urwid
 
+history_stack = []
+is_help_visible = False
+main_widget_original = None
+
+HELP_TEXT = [
+    "q or Q or esc: Quit the browser",
+    "i: Jump to the URL bar",
+    "enter: Load the URL",
+    "b: Go back to the previous page",
+    "?: Help screen",
+    # Add more keybindings here
+]
+
+def help_overlay(main_widget):
+    help_content = urwid.Text("\n".join(HELP_TEXT))
+    help_fill = urwid.Filler(help_content, 'middle')
+    help_frame = urwid.LineBox(help_fill, title="Help - Press '?' to close")
+    return urwid.Overlay(help_frame, main_widget, 'center', ('relative', 30), 'middle', ('relative', 10))
+
 def assign_loop_to_buttons(loop):
     for widget in loop.widget.body.body:
         if isinstance(widget.base_widget, urwid.Button):
             widget.base_widget._loop = loop
 
 def fetch_and_clean_article(url):
+    print("Loading...")  # Basic textual feedback
     try:
         response = requests.get(url)
         response.raise_for_status()  # Check for successful request
@@ -62,10 +82,10 @@ def article_view(url):
 
     return layout, edit
 
-history_stack = []
-
 def handle_input(key, edit_widget, main_loop):
     global history_stack
+    global is_help_visible
+    global main_widget_original
     if key in ('q', 'Q', 'esc'):
         raise urwid.ExitMainLoop()
     elif key == 'enter':
@@ -86,6 +106,16 @@ def handle_input(key, edit_widget, main_loop):
             main_loop.widget = new_view
             main_loop.user_data['edit_widget'] = new_edit
             assign_loop_to_buttons(main_loop)
+    elif key == 'i':
+        main_loop.widget.set_focus('header')  # Focus on URL bar
+    elif key == '?':
+        if is_help_visible:
+            main_loop.widget = main_widget_original  # Restore the original main widget
+            is_help_visible = False
+        else:
+            main_widget_original = main_loop.widget  # Store the original main widget
+            main_loop.widget = help_overlay(main_loop.widget)
+            is_help_visible = True
 
 def link_pressed(button, link):
     loop = button._loop  # Retrieve the main loop reference
