@@ -103,8 +103,9 @@ def fetch_and_clean_article(url):
         # Extract links and present differently
         links = []
         for a in soup.find_all('a'):
-            if a['href']:
-                links.append((a.text, a['href']))
+            href = a.get('href')
+            if href:
+                links.append((a.text, href))
 
         return plain_text, links, page_title
     except requests.RequestException as e:
