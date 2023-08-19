@@ -160,12 +160,18 @@ def article_view(content, links, title):
 
     return layout, edit
 
+def on_no(button):
+    global main_widget_original
+    main_loop.widget = main_widget_original  # Restore the original main widget
+
 def handle_input(key, edit_widget, main_loop):
     global history
     global is_help_visible
     global main_widget_original
     if key in ('q', 'Q', 'esc'):
-        raise urwid.ExitMainLoop()
+        # Show the confirmation dialog
+        main_widget_original = main_loop.widget  # Store the current main widget
+        main_loop.widget = confirm_quit(main_loop.widget)
     elif key == 'enter':
         new_url = edit_widget.get_edit_text()
         history.add(new_url)
@@ -203,6 +209,24 @@ def show_feedback(main_loop, message, duration_in_seconds=2):
 
 def restore_original_footer(main_loop, user_data):
     main_loop.widget.footer = main_loop.user_data.pop('original_footer', None)
+
+def confirm_quit(main_widget):
+    # Callback when "Yes" is pressed
+    def on_yes(button):
+        raise urwid.ExitMainLoop()
+
+    # Callback when "No" is pressed
+    def on_no(button):
+        main_loop.widget = main_widget_original  # Restore the original main widget
+
+    yes_button = urwid.Button("Yes", on_press=on_yes)
+    no_button = urwid.Button("No", on_press=on_no)
+
+    pile = urwid.Pile([urwid.Text("Are you sure you want to quit?"), yes_button, no_button])
+    fill = urwid.Filler(pile, 'middle')
+    frame = urwid.LineBox(fill, title="Confirm Quit")
+
+    return urwid.Overlay(frame, main_widget, 'center', 30, 'middle', 7)
 
 def main():
     global main_loop
