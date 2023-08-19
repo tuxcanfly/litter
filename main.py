@@ -1,3 +1,4 @@
+import json
 import requests
 import threading
 import urwid
@@ -13,7 +14,11 @@ toy browser
 is_help_visible = False
 main_widget_original = None
 
-HEADERS = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'}
+HEADERS = {
+    'User-Agent':
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'
+}
+
 HELP_TEXT = [
     "q or Q or esc: Quit the browser",
     "i: Jump to the URL bar",
@@ -24,7 +29,26 @@ HELP_TEXT = [
     # Add more keybindings here
 ]
 
+DEFAULT_KEY_MAP = {
+    'quit': ['q', 'Q', 'esc'],
+    'enter': ['enter'],
+    'back': ['backspace'],
+    'open': ['i'],
+    'help': ['?'],
+    'bookmark': ['b']
+}
+
 BOOKMARKS_FILE = "bookmarks.txt"
+
+def load_keymap(filename="keymap.json"):
+    try:
+        with open(filename, 'r') as f:
+            custom_key_map = json.load(f)
+        return custom_key_map
+    except FileNotFoundError:
+        return DEFAULT_KEY_MAP
+
+key_map = load_keymap()
 
 class History:
     def __init__(self):
@@ -168,20 +192,21 @@ def handle_input(key, edit_widget, main_loop):
     global history
     global is_help_visible
     global main_widget_original
-    if key in ('q', 'Q', 'esc'):
+    if key in key_map['quit']:
         # Show the confirmation dialog
         main_widget_original = main_loop.widget  # Store the current main widget
         main_loop.widget = confirm_quit(main_loop.widget)
-    elif key == 'enter':
+    elif key in key_map['enter']:
         new_url = edit_widget.get_edit_text()
         history.add(new_url)
         fetch_content_async(new_url, on_content_fetched)
-    elif key == 'backspace' and history:
+    elif key in key_map['back'] and history:
         back_url = history.back()
-        fetch_content_async(back_url, on_content_fetched)
-    elif key == 'i':
+        if back_url:
+            fetch_content_async(back_url, on_content_fetched)
+    elif key in key_map['open']:
         main_loop.widget.set_focus('header')  # Focus on URL bar
-    elif key == '?':
+    elif key in key_map['help']:
         if is_help_visible:
             main_loop.widget = main_widget_original  # Restore the original main widget
             is_help_visible = False
@@ -189,7 +214,7 @@ def handle_input(key, edit_widget, main_loop):
             main_widget_original = main_loop.widget  # Store the original main widget
             main_loop.widget = help_overlay(main_loop.widget)
             is_help_visible = True
-    elif key == 'b':
+    elif key in key_map['bookmark']:
         current_url = main_loop.widget.footer.original_widget.text  # Extracting the current URL from status bar
         save_bookmark(current_url)
         show_feedback(main_loop, "Bookmark saved successfully!")
