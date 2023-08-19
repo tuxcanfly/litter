@@ -278,11 +278,11 @@ def main():
     main_widget, edit_widget = article_view(content, links, title)
 
     palette = [
-        ('status_bar', 'white', 'dark blue'),
-        ('url_bar', 'black', 'light gray'),
+        ('status_bar', 'black', 'white'),
+        ('url_bar', 'black', 'white'),
         ('link', 'yellow', 'black'),
         ('url_bar_focused', 'black', 'yellow'),
-        ('text_focused', 'white', 'dark blue')
+        ('text_focused', 'yellow', 'black')
     ]  # Define colors
 
     # Set up MainLoop
