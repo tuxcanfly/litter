@@ -14,6 +14,8 @@ toy browser
 is_help_visible = False
 main_widget_original = None
 
+SEARCH_ENGINE = 'https://lite.duckduckgo.com/lite?q='
+
 HEADERS = {
     'User-Agent':
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'
@@ -198,6 +200,8 @@ def handle_input(key, edit_widget, main_loop):
         main_loop.widget = confirm_quit(main_loop.widget)
     elif key in key_map['enter']:
         new_url = edit_widget.get_edit_text()
+        if not new_url.startswith('https://'):
+            new_url = SEARCH_ENGINE + new_url.replace(' ', '+')
         history.add(new_url)
         fetch_content_async(new_url, on_content_fetched)
     elif key in key_map['back'] and history:
