@@ -166,7 +166,16 @@ def article_view(content, links, title):
         else:
             txt_content.append(line)
     
-    items = [urwid.AttrMap(urwid.SelectableIcon(item, 0), None, 'text_focused') if isinstance(item, str) else urwid.AttrMap(urwid.Button(item[1], on_press=link_pressed, user_data=link_map[item[1]]), 'link', focus_map='reversed') for item in txt_content]
+    items = [
+        urwid.AttrMap(urwid.SelectableIcon(item, 0), None, 'text_focused')
+        if isinstance(item, str)
+        else urwid.AttrMap(urwid.Button(item[1],
+            on_press=link_pressed,
+            user_data=link_map[item[1]]),
+           'link',
+           focus_map='reversed'
+        ) for item in txt_content
+    ]
 
     walker = urwid.SimpleFocusListWalker(items)
     listbox = urwid.ListBox(walker)
@@ -177,7 +186,7 @@ def article_view(content, links, title):
     status_bar = urwid.AttrWrap(status_bar, 'status_bar')
     
     # URL bar to enter addresses
-    edit = urwid.Edit("Enter URL: ")
+    edit = urwid.Edit("Enter URL or keyword: ")
     url_bar = urwid.AttrMap(edit, 'url_bar', 'url_bar_focused')
     
     # Combine listbox, status bar, and URL bar
