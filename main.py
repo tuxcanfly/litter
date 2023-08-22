@@ -11,9 +11,6 @@ toy browser
 """
 
 
-is_help_visible = False
-main_widget_original = None
-
 SEARCH_ENGINE = 'https://lite.duckduckgo.com/lite?q='
 
 HEADERS = {
@@ -149,7 +146,6 @@ def on_content_fetched(content, links, title):
     global main_loop
     new_view, new_edit = article_view(content, links, title)
     main_loop.widget = new_view
-    main_loop.user_data['edit_widget'] = new_edit
     assign_loop_to_buttons(main_loop)
     main_loop.draw_screen()
 
@@ -195,17 +191,10 @@ def article_view(content, links, title):
 
     return layout, edit
 
-def on_no(button):
-    global main_widget_original
-    main_loop.widget = main_widget_original  # Restore the original main widget
-
 def handle_input(key, edit_widget, main_loop):
     global history
-    global is_help_visible
-    global main_widget_original
     if key in key_map['quit']:
         # Show the confirmation dialog
-        main_widget_original = main_loop.widget  # Store the current main widget
         main_loop.widget = confirm_quit(main_loop.widget)
     elif key in key_map['enter']:
         new_url = edit_widget.get_edit_text()
@@ -220,33 +209,18 @@ def handle_input(key, edit_widget, main_loop):
     elif key in key_map['open']:
         main_loop.widget.set_focus('header')  # Focus on URL bar
     elif key in key_map['help']:
-        if is_help_visible:
-            main_loop.widget = main_widget_original  # Restore the original main widget
-            is_help_visible = False
+        if isinstance(main_loop.widget, urwid.Overlay):
+            main_loop.widget = main_loop.widget[0]
         else:
-            main_widget_original = main_loop.widget  # Store the original main widget
             main_loop.widget = help_overlay(main_loop.widget)
-            is_help_visible = True
     elif key in key_map['bookmark']:
         current_url = main_loop.widget.footer.original_widget.text  # Extracting the current URL from status bar
         save_bookmark(current_url)
-        show_feedback(main_loop, "Bookmark saved successfully!")
 
 def link_pressed(button, link):
     loop = button._loop  # Retrieve the main loop reference
     history.add(link)
     fetch_content_async(link, on_content_fetched)
-
-def show_feedback(main_loop, message, duration_in_seconds=2):
-    original_footer = main_loop.widget.footer
-    main_loop.user_data['original_footer'] = original_footer
-    feedback_text = urwid.Text(message)
-    feedback_bar = urwid.AttrWrap(feedback_text, 'status_bar')
-    main_loop.widget.footer = feedback_bar
-    main_loop.set_alarm_in(duration_in_seconds, restore_original_footer)
-
-def restore_original_footer(main_loop, user_data):
-    main_loop.widget.footer = main_loop.user_data.pop('original_footer', None)
 
 def confirm_quit(main_widget):
     # Callback when "Yes" is pressed
@@ -254,11 +228,11 @@ def confirm_quit(main_widget):
         raise urwid.ExitMainLoop()
 
     # Callback when "No" is pressed
-    def on_no(button):
-        main_loop.widget = main_widget_original  # Restore the original main widget
+    def on_no(button, widgets):
+        main_loop.widget = widgets[0]  # Restore the original main widget
 
     yes_button = urwid.Button("Yes", on_press=on_yes)
-    no_button = urwid.Button("No", on_press=on_no)
+    no_button = urwid.Button("No", on_press=on_no, user_data=[main_widget])
 
     pile = urwid.Pile([urwid.Text("Are you sure you want to quit?"), yes_button, no_button])
     fill = urwid.Filler(pile, 'middle')
@@ -287,7 +261,6 @@ def main():
 
     # Set up MainLoop
     main_loop = urwid.MainLoop(main_widget, palette=palette, unhandled_input=lambda key: handle_input(key, edit_widget, main_loop))
-    main_loop.user_data = {'edit_widget': edit_widget}
     assign_loop_to_buttons(main_loop)
     main_loop.run()
 
