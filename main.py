@@ -43,7 +43,6 @@ class History:
     def __init__(self):
         self.stack = []
         self.position = -1
-        self.file = BOOKMARKS_FILE
 
     def add(self, url):
         self.stack = self.stack[:self.position+1]  # Remove forward history
@@ -61,6 +60,10 @@ class History:
             self.position += 1
             return self.stack[self.position]
         return None
+
+class Bookmarks:
+    def __init__(self):
+        self.file = BOOKMARKS_FILE
 
     def get_bookmarks(self):
         try:
@@ -91,6 +94,7 @@ class BrowserApp:
     def __init__(self):
         self.key_map = self.load_keymap()
         self.history = History()
+        self.bookmarks = Bookmarks()
         self.main_loop = None
 
     def load_keymap(self, filename="keymap.json"):
@@ -146,18 +150,18 @@ class BrowserApp:
     def fetch_content_async(self, url, callback):
         def worker():
             content, links, title = self.fetch_and_clean_article(url)
-            callback(content, links, title)
+            callback(url, content, links, title)
 
         thread = threading.Thread(target=worker)
         thread.start()
 
-    def on_content_fetched(self, content, links, title):
-        new_view, new_edit = self.article_view(content, links, title)
+    def on_content_fetched(self, url, content, links, title):
+        new_view, new_edit = self.article_view(url, content, links, title)
         self.main_loop.widget = new_view
-        self.edit_widget = new_edit
+        self.main_loop.edit = new_edit
         self.main_loop.draw_screen()
 
-    def article_view(self, content, links, title):
+    def article_view(self, url, content, links, title):
         # Represent links as (URL, displayed_text)
         txt_content = []
         link_map = {}  # To store links for navigation
@@ -189,7 +193,7 @@ class BrowserApp:
         status_bar = urwid.AttrWrap(status_bar, 'status_bar')
 
         # URL bar to enter addresses
-        edit = urwid.Edit("Enter URL or keyword: ")
+        edit = urwid.Edit(url)
         url_bar = urwid.AttrMap(edit, 'url_bar', 'url_bar_focused')
 
         # Combine listbox, status bar, and URL bar
@@ -207,29 +211,29 @@ class BrowserApp:
             # Show the confirmation dialog
             self.confirm_quit()
         elif key in self.key_map['enter']:
-            new_url = self.edit_widget.get_edit_text()
+            new_url = self.main_loop.edit.get_edit_text()
             if not new_url.startswith('https://'):
                 new_url = SEARCH_ENGINE + new_url.replace(' ', '+')
             self.open(new_url)
-        elif key in self.key_map['back'] and history:
-            back_url = history.back()
+        elif key in self.key_map['back'] and self.history:
+            back_url = self.history.back()
             if back_url:
-                fetch_content_async(back_url, on_content_fetched)
+                self.fetch_content_async(back_url, self.on_content_fetched)
         elif key in self.key_map['open']:
             self.main_loop.widget.set_focus('header')  # Focus on URL bar
+            self.main_loop.edit.set_caption('go: ')
         elif key in self.key_map['help']:
             if isinstance(self.main_loop.widget, urwid.Overlay):
                 self.main_loop.widget = self.main_loop.widget[0]
             else:
-                self.main_loop.widget = help_overlay(main_loop.widget)
+                self.main_loop.widget = self.help_overlay()
         elif key in self.key_map['bookmark']:
             current_url = self.main_loop.widget.footer.original_widget.text  # Extracting the current URL from status bar
-            save_bookmark(current_url)
+            self.bookmarks.save_bookmark(current_url)
 
-    @classmethod
     def link_pressed(self, button, link):
-        history.add(link)
-        fetch_content_async(link, on_content_fetched)
+        self.history.add(link)
+        self.fetch_content_async(link, self.on_content_fetched)
 
     def confirm_quit(self):
         # Callback when "Yes" is pressed
