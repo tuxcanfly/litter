@@ -193,11 +193,11 @@ class BrowserApp:
 
         # Status bar with the current page title or fallback to URL if title is not available
         status_bar_text = title
-        status_bar = urwid.Text(status_bar_text)
+        status_bar = urwid.Text(' 🌍 ' + status_bar_text)
         status_bar = urwid.AttrWrap(status_bar, 'status_bar')
 
         # URL bar to enter addresses
-        edit = urwid.Edit(url)
+        edit = urwid.Edit(' 🔍 ' + url)
         url_bar = urwid.AttrMap(edit, 'url_bar', 'url_bar_focused')
 
         # Combine listbox, status bar, and URL bar
@@ -239,7 +239,7 @@ class BrowserApp:
                 self.fetch_content_async(back_url, self.on_content_fetched)
         elif key in self.key_map['open']:
             self.main_loop.widget.set_focus('header')  # Focus on URL bar
-            self.main_loop.edit.set_caption('go: ')
+            self.main_loop.edit.set_caption(' 👉 ')
         elif key in self.key_map['help']:
             if isinstance(self.main_loop.widget, urwid.Overlay):
                 self.main_loop.widget = self.main_loop.widget[0]
