@@ -32,6 +32,10 @@ DEFAULT_KEY_MAP = {
     'quit': ['q', 'Q', 'esc'],
     'enter': ['enter'],
     'back': ['backspace'],
+    'next_line': ['j'],
+    'prev_line': ['k'],
+    'first_line': ['g'],
+    'last_line': ['G'],
     'open': ['i'],
     'help': ['?'],
     'bookmark': ['b']
@@ -210,6 +214,20 @@ class BrowserApp:
         if key in self.key_map['quit']:
             # Show the confirmation dialog
             self.confirm_quit()
+        elif key in self.key_map['next_line']:
+            listbox = self.main_loop.widget.body
+            if listbox.focus_position < len(listbox.body) - 1:
+                listbox.set_focus(listbox.focus_position + 1)
+        elif key in self.key_map['prev_line']:
+            listbox = self.main_loop.widget.body
+            if listbox.focus_position > 0:
+                listbox.set_focus(listbox.focus_position - 1)
+        elif key in self.key_map['first_line']:
+            listbox = self.main_loop.widget.body
+            listbox.set_focus(0)
+        elif key in self.key_map['last_line']:
+            listbox = self.main_loop.widget.body
+            listbox.set_focus(len(listbox.body) - 1)
         elif key in self.key_map['enter']:
             new_url = self.main_loop.edit.get_edit_text()
             if not new_url.startswith('https://'):
