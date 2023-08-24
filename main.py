@@ -276,7 +276,7 @@ class BrowserApp:
         palette = [
             ('status_bar', 'black', 'white'),
             ('url_bar', 'black', 'white'),
-            ('link', 'yellow', 'black'),
+            ('link', 'yellow,underline', 'black'),
             ('url_bar_focused', 'black', 'yellow'),
             ('text_focused', 'yellow', 'black')
         ]
