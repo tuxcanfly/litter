@@ -143,8 +143,9 @@ class BrowserApp:
             links = []
             for a in soup.find_all('a'):
                 href = a.get('href')
-                if href:
-                    links.append((a.text, href))
+                text = a.text.strip()
+                if href and text:
+                    links.append((text, href))
 
             return plain_text, links, page_title
         except requests.RequestException as e:
@@ -230,9 +231,10 @@ class BrowserApp:
             listbox.set_focus(len(listbox.body) - 1)
         elif key in self.key_map['enter']:
             new_url = self.main_loop.edit.get_edit_text()
-            if not new_url.startswith('https://'):
-                new_url = SEARCH_ENGINE + new_url.replace(' ', '+')
-            self.open(new_url)
+            if new_url.strip():
+                if not new_url.startswith('https://'):
+                    new_url = SEARCH_ENGINE + new_url.replace(' ', '+')
+                self.open(new_url)
         elif key in self.key_map['back'] and self.history:
             back_url = self.history.back()
             if back_url:
