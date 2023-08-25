@@ -179,7 +179,7 @@ class BrowserApp:
             else:
                 txt_content.append(line)
         items = [
-            urwid.AttrMap(urwid.SelectableIcon(item, 0), None, 'text_focused')
+            urwid.AttrMap(urwid.Text(item), None, 'text_focused')
             if isinstance(item, str)
             else urwid.AttrMap(urwid.Button(item[1],
                 on_press=self.link_pressed,
