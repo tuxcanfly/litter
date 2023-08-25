@@ -195,7 +195,7 @@ class BrowserApp:
                     item[1], on_press=self.link_pressed, user_data=link_map[item[1]]
                 ),
                 "link",
-                focus_map="reversed",
+                "link_focused",
             )
             for item in txt_content
         ]
@@ -297,7 +297,8 @@ class BrowserApp:
         palette = [
             ("status_bar", "black", "white"),
             ("url_bar", "black", "white"),
-            ("link", "yellow,underline", "black"),
+            ("link", "yellow", "black"),
+            ("link_focused", "yellow,underline", "black"),
             ("url_bar_focused", "black", "yellow"),
             ("text_focused", "yellow", "black"),
         ]
