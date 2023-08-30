@@ -5,6 +5,7 @@ import urwid
 
 from readability import Document
 from bs4 import BeautifulSoup
+from urllib.parse import urljoin
 
 """
 toy browser
@@ -182,6 +183,8 @@ class BrowserApp:
             matching_links = [link for link in links if link[0] == line]
             if matching_links:
                 displayed_text, link_url = matching_links[0]
+                if not link_url.startswith("http"):
+                    link_url = urljoin(url, link_url)
                 link_map[displayed_text] = link_url  # Map text to URL
                 txt_content.append(("link", displayed_text))
             else:
