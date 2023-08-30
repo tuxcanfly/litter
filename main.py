@@ -2,6 +2,7 @@ import json
 import requests
 import threading
 import urwid
+import pyperclip
 
 from readability import Document
 from bs4 import BeautifulSoup
@@ -38,6 +39,7 @@ DEFAULT_KEY_MAP = {
     "last_line": ["G"],
     "open": ["i"],
     "help": ["?"],
+    "copy": ["c"],
     "bookmark": ["b"],
 }
 
@@ -265,6 +267,12 @@ class BrowserApp:
                 self.main_loop.widget.footer.original_widget.text
             )  # Extracting the current URL from status bar
             self.bookmarks.save_bookmark(current_url)
+        elif key in self.key_map["copy"]:
+            listbox = self.main_loop.widget.body
+            item, _ = listbox.get_focus()
+            selected_text = item.base_widget.get_text()[0]
+            # Copy to clipboard
+            pyperclip.copy(selected_text)
 
     def link_pressed(self, button, link):
         self.history.add(link)
