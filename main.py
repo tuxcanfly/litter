@@ -202,12 +202,6 @@ class BrowserApp:
             for item in txt_content
         ]
 
-        # flatten the list and insert dividers between the items
-        items = sum([[urwid.Divider()] + [item] for item in items], [])
-
-        # remove the first divider
-        items = items[1:]
-
         walker = urwid.SimpleFocusListWalker(items)
         listbox = urwid.ListBox(walker)
 
