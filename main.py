@@ -158,7 +158,7 @@ class BrowserApp:
 
             return soup.stripped_strings, links, page_title
         except requests.RequestException as e:
-            return f"Error: {str(e)}", [], ""
+            return [f"Error: {str(e)}"], [], ""
 
     @classmethod
     def fetch_content_async(self, url, callback):
