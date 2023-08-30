@@ -146,7 +146,6 @@ class BrowserApp:
             cleaned_content = doc.summary()
 
             soup = BeautifulSoup(cleaned_content, "html.parser")
-            plain_text = soup.get_text()
 
             # Extract links and present differently
             links = []
@@ -156,7 +155,7 @@ class BrowserApp:
                 if href and text:
                     links.append((text, href))
 
-            return plain_text, links, page_title
+            return soup.stripped_strings, links, page_title
         except requests.RequestException as e:
             return f"Error: {str(e)}", [], ""
 
@@ -179,7 +178,7 @@ class BrowserApp:
         # Represent links as (URL, displayed_text)
         txt_content = []
         link_map = {}  # To store links for navigation
-        for line in content.split("\n"):
+        for line in content:
             matching_links = [link for link in links if link[0] == line]
             if matching_links:
                 displayed_text, link_url = matching_links[0]
@@ -199,6 +198,12 @@ class BrowserApp:
             )
             for item in txt_content
         ]
+
+        # flatten the list and insert dividers between the items
+        items = sum([[urwid.Divider()] + [item] for item in items], [])
+
+        # remove the first divider
+        items = items[1:]
 
         walker = urwid.SimpleFocusListWalker(items)
         listbox = urwid.ListBox(walker)
