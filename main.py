@@ -185,8 +185,8 @@ class BrowserApp:
 
             # Additional checks for content type
             content_type = response.headers.get("Content-Type")
-            if "text/html" not in content_type:
-                return "Error: Content type is not HTML.", [], ""
+            if not content_type.startswith("text"):
+                return ["Error: Content type is not HTML."], [], ""
 
             doc = Document(response.text)
             page_title = doc.title()
