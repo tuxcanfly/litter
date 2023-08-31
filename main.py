@@ -135,6 +135,56 @@ class BrowserApp:
         :param url: URL of the article.
         :return: Tuple containing plain text of the article, links, and page title.
         """
+
+        inline_elements = [
+            "abbr",
+            "acronym",
+            "b",
+            "bdi",
+            "bdo",
+            "big",
+            "br",
+            "button",
+            "cite",
+            "code",
+            "data",
+            "datalist",
+            "dfn",
+            "em",
+            "i",
+            "img",
+            "input",
+            "kbd",
+            "label",
+            "mark",
+            "meter",
+            "nobr",
+            "object",
+            "output",
+            "q",
+            "ruby",
+            "rbc",
+            "rb",
+            "rp",
+            "rt",
+            "rtc",
+            "s",
+            "samp",
+            "script",
+            "select",
+            "small",
+            "span",
+            "strong",
+            "sub",
+            "sup",
+            "textarea",
+            "time",
+            "tt",
+            "u",
+            "var",
+            "wbr",
+        ]
+
         try:
             response = requests.get(url, headers=HEADERS)
             response.raise_for_status()  # Check for successful request
@@ -149,6 +199,9 @@ class BrowserApp:
             cleaned_content = doc.summary()
 
             soup = BeautifulSoup(cleaned_content, "html.parser")
+            for tag in soup.find_all(inline_elements):
+                tag.unwrap()
+            soup = BeautifulSoup(str(soup), "html.parser")
 
             # Extract links and present differently
             links = []
