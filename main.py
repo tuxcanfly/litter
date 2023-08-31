@@ -20,13 +20,17 @@ HEADERS = {
 }
 
 HELP_TEXT = [
-    "q or Q or esc: Quit the browser",
-    "i: Jump to the URL bar",
-    "b: Bookmark current URL",
-    "enter: Load the URL",
-    "backspace: Go back to the previous page",
-    "?: Help screen",
-    # Add more keybindings here
+    "q: quit",
+    "enter: load url",
+    "backspace: go back to previous page",
+    "j: next line",
+    "k: previous line",
+    "g: goto top",
+    "G: goto bottom",
+    "i: input url",
+    "?: help",
+    "c: copy highlighted text",
+    "b: bookmark page",
 ]
 
 DEFAULT_KEY_MAP = {
@@ -90,16 +94,6 @@ class Bookmarks:
 
 
 class BrowserApp:
-    HELP_TEXT = [
-        "q or Q or esc: Quit the browser",
-        "i: Jump to the URL bar",
-        "b: Bookmark current URL",
-        "enter: Load the URL",
-        "backspace: Go back to the previous page",
-        "?: Help screen",
-        # Add more keybindings here
-    ]
-
     def __init__(self):
         self.key_map = self.load_keymap()
         self.history = History()
@@ -124,7 +118,7 @@ class BrowserApp:
             "center",
             ("relative", 30),
             "middle",
-            ("relative", 15),
+            ("relative", 30),
         )
 
     @classmethod
