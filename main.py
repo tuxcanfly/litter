@@ -20,17 +20,20 @@ HEADERS = {
 }
 
 HELP_TEXT = [
-    "q: quit",
-    "enter: load url",
-    "backspace: go back to previous page",
-    "j: next line",
-    "k: previous line",
-    "g: goto top",
-    "G: goto bottom",
-    "i: input url",
-    "?: help",
-    "c: copy highlighted text",
-    "b: bookmark page",
+    ["---", "------"],
+    ["key", "action"],
+    ["---", "------"],
+    ["q", "quit"],
+    ["⏎", "load url"],
+    ["⇦", "go back to previous page"],
+    ["j", "next line"],
+    ["k", "previous line"],
+    ["g", "goto top"],
+    ["G", "goto bottom"],
+    ["i", "input url"],
+    ["?", "help"],
+    ["c", "copy highlighted text"],
+    ["b", "bookmark page"],
 ]
 
 DEFAULT_KEY_MAP = {
@@ -109,8 +112,16 @@ class BrowserApp:
             return DEFAULT_KEY_MAP
 
     def help_overlay(self):
-        help_content = urwid.Text("\n".join(HELP_TEXT))
-        help_fill = urwid.Filler(help_content, "middle")
+        help_content = [
+            urwid.Columns(
+                [
+                    urwid.Padding(urwid.Text(cell, align="left"), width="pack")
+                    for cell in row
+                ]
+            )
+            for row in HELP_TEXT
+        ]
+        help_fill = urwid.Filler(urwid.Pile(help_content), "middle")
         help_frame = urwid.LineBox(help_fill, title="Help - Press '?' to close")
         return urwid.Overlay(
             help_frame,
