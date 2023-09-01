@@ -295,6 +295,9 @@ class BrowserApp:
             if key not in self.key_map["help"]:
                 return
         if key in self.key_map["quit"]:
+            if self.main_loop.widget.get_focus() == "header":
+                self.main_loop.widget.set_focus("body")
+                return
             # Show the confirmation dialog
             self.confirm_quit()
         elif key in self.key_map["next_line"]:
