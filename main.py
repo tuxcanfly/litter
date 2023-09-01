@@ -51,6 +51,12 @@ DEFAULT_KEY_MAP = {
     "bookmark": ["b"],
 }
 
+DEFAULT_REDIRECT = {
+    "twitter.com": "nitter.net",
+    "reddit.com": "teddit.net",
+    "github.com": "gothub.lunar.icu",
+}
+
 BOOKMARKS_FILE = "bookmarks.txt"
 
 
@@ -124,6 +130,21 @@ class BrowserApp:
             return custom_key_map
         except FileNotFoundError:
             return DEFAULT_KEY_MAP
+
+    def load_redirect(self, filename="redirect.json"):
+        try:
+            with open(filename, "r") as f:
+                custom_redirect_map = json.load(f)
+            return custom_redirect_map
+        except FileNotFoundError:
+            return DEFAULT_REDIRECT
+
+    def redirect(self, url):
+        custom_redirect_map = self.load_redirect()
+        for k, v in custom_redirect_map.items():
+            if url.find(k) != -1:
+                return url.replace(k, v)
+        return url
 
     def help_overlay(self):
         help_content = [
@@ -301,6 +322,7 @@ class BrowserApp:
         return layout, edit
 
     def open(self, url):
+        url = self.redirect(url)
         self.history.add(url)
         self.fetch_content_async(url, self.on_content_fetched)
 
@@ -357,8 +379,7 @@ class BrowserApp:
             pyperclip.copy(selected_text)
 
     def link_pressed(self, button, link):
-        self.history.add(link)
-        self.fetch_content_async(link, self.on_content_fetched)
+        self.open(link)
 
     def confirm_quit(self):
         # Callback when "Yes" is pressed
