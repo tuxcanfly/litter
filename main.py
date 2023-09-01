@@ -53,8 +53,8 @@ DEFAULT_KEY_MAP = {
 
 DEFAULT_REDIRECT = {
     "twitter.com": "nitter.net",
-    "reddit.com": "teddit.net",
-    "github.com": "gothub.lunar.icu",
+    "www.reddit.com": "teddit.pussthecat.org",
+    "github.com": "gh.bloatcat.tk",
 }
 
 BOOKMARKS_FILE = "bookmarks.txt"
