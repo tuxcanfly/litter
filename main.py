@@ -24,13 +24,13 @@ HELP_TEXT = [
     ["key", "action"],
     ["---", "------"],
     ["q", "quit"],
-    ["⏎", "load url"],
+    ["⏎", "open url or search keyword"],
     ["⇦", "go back to previous page"],
     ["j", "next line"],
     ["k", "previous line"],
     ["g", "goto top"],
     ["G", "goto bottom"],
-    ["i", "input url"],
+    ["i", "edit url or keyword"],
     ["?", "help"],
     ["c", "copy highlighted text"],
     ["b", "bookmark page"],
@@ -270,12 +270,18 @@ class BrowserApp:
         status_bar = urwid.Text(" 🌍 " + status_bar_text)
         status_bar = urwid.AttrWrap(status_bar, "status_bar")
 
+        help_bar_text = "? → help j/k → move i → edit ⏎ → open ⇦ → back q → quit"
+        help_bar = urwid.Text(" 🔤  " + help_bar_text)
+        help_bar = urwid.AttrWrap(help_bar, "help_bar")
+
+        footer = urwid.Pile([help_bar, status_bar])
+
         # URL bar to enter addresses
         edit = urwid.Edit(" 🔍 " + url)
         url_bar = urwid.AttrMap(edit, "url_bar", "url_bar_focused")
 
         # Combine listbox, status bar, and URL bar
-        layout = urwid.Frame(header=url_bar, body=listbox, footer=status_bar)
+        layout = urwid.Frame(header=url_bar, body=listbox, footer=footer)
 
         return layout, edit
 
