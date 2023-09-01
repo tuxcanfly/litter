@@ -60,6 +60,47 @@ DEFAULT_REDIRECT = {
 BOOKMARKS_FILE = "bookmarks.txt"
 
 
+superscript_map = {
+    "0": "⁰",
+    "1": "¹",
+    "2": "²",
+    "3": "³",
+    "4": "⁴",
+    "5": "⁵",
+    "6": "⁶",
+    "7": "⁷",
+    "8": "⁸",
+    "9": "⁹",
+}
+
+
+class ClickyText(urwid.Text):
+    ignore_focus = False
+    _selectable = True
+
+    def __init__(self, text, cursor_position=0):
+        self.__super.__init__(text)
+        self._cursor_position = cursor_position
+
+    def render(self, size, focus=False):
+        c = self.__super.render(size, focus)
+        if focus:
+            c = urwid.CompositeCanvas(c)
+            c.cursor = self.get_cursor_coords(size)
+        return c
+
+    def get_cursor_coords(self, size):
+        (maxcol,) = size
+        trans = self.get_line_translation(maxcol)
+        x, y = urwid.text_layout.calc_coords(self.text, trans, self._cursor_position)
+        if maxcol <= x:
+            return None
+        return x, y
+
+    def keypress(self, size, key):
+        return key
+
+
 class History:
     def __init__(self):
         self.stack = []
