@@ -209,15 +209,10 @@ class BrowserApp:
         )
 
     @classmethod
-    def fetch_and_clean_article(self, url):
-        """
-        Fetch and clean article from a URL.
+    def html_to_urwid(self, element):
+        from bs4 import NavigableString, Tag
 
-        :param url: URL of the article.
-        :return: Tuple containing plain text of the article, links, and page title.
-        """
-
-        inline_elements = [
+        inline_elements_names = [
             "abbr",
             "acronym",
             "b",
@@ -266,6 +261,213 @@ class BrowserApp:
             "wbr",
         ]
 
+        block_element_names = [
+            "div",
+            "p",
+            "ul",
+            "ol",
+            "h1",
+            "h2",
+            "h3",
+            "h4",
+            "h5",
+            "h6",
+        ]
+
+        if isinstance(element, NavigableString):
+            return urwid.Text(str(element).replace("\n", " "), align="left")
+
+        if element.name in ["script", "style", "meta"]:
+            print(f"Unsupported tag: {element.name}")
+            return []
+
+        if element.name in ["div", "p", "body"]:
+            inline_elements = []  # To hold elements that should be side by side
+            block_elements = []  # For vertical stacking of block-level elements
+
+            for child in element.children:
+                if child != "\n":
+                    widget = self.html_to_urwid(child)
+                    if widget:
+                        if not child.name or child.name in block_element_names:
+                            # If it's a block-level child, we add the previous inline elements (if any)
+                            # to the block_elements list as a Columns widget, and then add this block-level widget.
+                            if inline_elements:
+                                block_elements.append(
+                                    urwid.Columns(
+                                        [("pack", w) for w in inline_elements],
+                                        dividechars=1,
+                                    )
+                                )
+                                inline_elements = []
+                            block_elements.append(widget)
+                        # FIXME: default inline?
+                        else:
+                            # Otherwise, it's an inline element.
+                            inline_elements.append(widget)
+
+            # In case there are any remaining inline elements at the end
+            if inline_elements:
+                block_elements.append(
+                    urwid.Columns([("pack", w) for w in inline_elements], dividechars=1)
+                )
+
+            return urwid.Pile(block_elements)
+
+        if element.name == "br":
+            return urwid.Text("\n")
+
+        if element.name == "center":
+            # As terminal doesn't really support centering,
+            # you might want to just pass the children through unchanged or
+            # add some sort of separator or visual cue
+            return self.html_to_urwid(element.contents[0])
+
+        if element.name == "em":
+            return urwid.Text(("italic", str(element.string)), wrap="clip")
+
+        if element.name == "code":
+            return urwid.AttrWrap(
+                urwid.Text(str(element.string), wrap="clip"), "code_style"
+            )
+
+        if element.name == "style":
+            return []  # We ignore CSS content for terminal rendering
+
+        if element.name == "details":
+            summary = element.find("summary")
+            summary_text = summary.get_text() if summary else "Details"
+            details_content = [
+                self.html_to_urwid(child)
+                for child in element.children
+                if child.name != "summary" and child != "\n"
+            ]
+            # This is a basic representation; real interaction requires more logic
+            return urwid.Pile([urwid.Text(summary_text), urwid.Pile(details_content)])
+
+        if element.name == "label":
+            return urwid.Text(str(element.string), wrap="clip")
+
+        if element.name in ["ul", "ol"]:
+            list_items = []
+            bullet = "•" if element.name == "ul" else "{}."
+            for idx, li in enumerate(element.children):
+                if isinstance(li, Tag):
+                    bullet_text = (
+                        bullet.format(idx + 1) if element.name == "ol" else bullet
+                    )
+                    list_items.append(
+                        urwid.Text([bullet_text, " ", li.get_text().strip()])
+                    )
+            return urwid.Pile(list_items)
+
+        if element.name == "a":
+            return urwid.AttrWrap(urwid.Text(str(element.string)), "link")
+
+        if element.name in ["span"]:
+            children = [
+                self.html_to_urwid(child) for child in element.children if child != "\n"
+            ]
+            return urwid.Columns([child for child in children if child])
+
+        if element.name in ["strong"]:
+            return urwid.Text(("bold", str(element.string)))
+
+        if element.name in ["h1", "h2", "h3", "h4", "h5", "h6"]:
+            children = [
+                self.html_to_urwid(child) for child in element.children if child != "\n"
+            ]
+            if element.string:
+                header_text = urwid.Text(("bold", str(element.string)))
+                children.append(header_text)
+            return urwid.Columns([child for child in children if child])
+
+        if element.name == "img":
+            # Since we can't display images in terminal, you might want to show the alt text if available
+            alt_text = element.get("alt", "[Image]")
+            if alt_text:
+                return urwid.Text(alt_text)
+            return []
+
+        if element.name == "abbr":
+            # Using underline for abbreviation
+            return urwid.Text(("underline", str(element.string)))
+
+        if element.name in ["footer", "main", "header", "nav"]:
+            # Treating these like divs for simplicity
+            children = [
+                self.html_to_urwid(child) for child in element.children if child != "\n"
+            ]
+            return urwid.Columns(
+                [("pack", w) for w in children if w],
+                dividechars=1,
+            )
+
+        if element.name == "form":
+            # This would simply list out children, more complex interaction would need more work
+            children = [
+                self.html_to_urwid(child) for child in element.children if child != "\n"
+            ]
+            return urwid.Pile([child for child in children if child])
+
+        if element.name == "noscript":
+            # Since we don't run scripts in terminal, always showing noscript content
+            return self.html_to_urwid(element.contents[0])
+
+        if element.name == "button":
+            # A basic button representation, more interaction would need more work
+            return urwid.AttrWrap(urwid.Text(str(element.string)), "button")
+
+        if element.name == "table":
+            # A very basic table representation, just listing out rows and columns
+            rows = []
+            for tr in element.find_all("tr"):
+                cols = [td.get_text() for td in tr.find_all(["td", "th"])]
+                rows.append(urwid.Text(" | ".join(cols)))
+            return urwid.Pile(rows)
+
+        if element.name == "hr":
+            return urwid.Divider(div_char="━")
+
+        if element.name == "input":
+            # Simply create a basic text edit box for now.
+            return urwid.Edit()
+
+        if element.name == "button":
+            # Create a button and set the label to the text content of the button element.
+            return urwid.Button(element.get_text())
+
+        if element.name == "form":
+            children = [
+                self.html_to_urwid(child) for child in element.children if child != "\n"
+            ]
+            # Add a submit button at the end of the form
+            submit_button = urwid.Button("Submit")
+            # Set up a click handler for the submit button (this needs to be implemented)
+            urwid.connect_signal(
+                submit_button, "click", self.handle_form_submit, user_args=[element]
+            )
+            children.append(submit_button)
+            return urwid.Pile(children)
+
+        if element.name == "select":
+            return None
+
+        else:
+            children = [
+                self.html_to_urwid(child) for child in element.children if child != "\n"
+            ]
+            return urwid.Pile([child for child in children if child])
+
+    @classmethod
+    def fetch_and_clean_article(self, url):
+        """
+        Fetch and clean article from a URL.
+
+        :param url: URL of the article.
+        :return: Tuple containing plain text of the article, links, and page title.
+        """
+
         try:
             response = requests.get(url, headers=HEADERS)
             response.raise_for_status()  # Check for successful request
@@ -279,20 +481,10 @@ class BrowserApp:
             page_title = doc.title()
             cleaned_content = doc.summary()
 
-            soup = BeautifulSoup(cleaned_content, "html.parser")
-            for tag in soup.find_all(inline_elements):
-                tag.unwrap()
-            soup = BeautifulSoup(str(soup), "html.parser")
+            soup = BeautifulSoup(response.text, "html.parser")
+            widgets = self.html_to_urwid(soup.body)
 
-            # Extract links and present differently
-            links = []
-            for a in soup.find_all("a"):
-                href = a.get("href")
-                text = a.text.strip()
-                if href and text:
-                    links.append((text, href))
-
-            return soup.stripped_strings, links, page_title
+            return widgets, [], page_title
         except requests.RequestException as e:
             return [f"Error: {str(e)}"], [], ""
 
@@ -311,36 +503,7 @@ class BrowserApp:
         self.main_loop.edit = new_edit
         self.main_loop.draw_screen()
 
-    def article_view(self, url, content, links, title):
-        # Represent links as (URL, displayed_text)
-        txt_content = []
-        link_map = {}  # To store links for navigation
-        for line in content:
-            matching_links = [link for link in links if link[0] == line]
-            if matching_links:
-                displayed_text, link_url = matching_links[0]
-                if not link_url.startswith("http"):
-                    link_url = urljoin(url, link_url)
-                link_map[displayed_text] = link_url  # Map text to URL
-                txt_content.append(("link", displayed_text))
-            else:
-                txt_content.append(line)
-        items = [
-            urwid.AttrMap(urwid.Text(item), None, "text_focused")
-            if isinstance(item, str)
-            else urwid.AttrMap(
-                urwid.Button(
-                    item[1], on_press=self.link_pressed, user_data=link_map[item[1]]
-                ),
-                "link",
-                "link_focused",
-            )
-            for item in txt_content
-        ]
-
-        walker = urwid.SimpleFocusListWalker(items)
-        listbox = urwid.ListBox(walker)
-
+    def article_view(self, url, widgets, links, title):
         # Status bar with the current page title or fallback to URL if title is not available
         status_bar_text = title
         status_bar = urwid.Text(" 🌍 " + status_bar_text)
@@ -358,7 +521,7 @@ class BrowserApp:
         url_bar = urwid.AttrMap(edit, "url_bar", "url_bar_focused")
 
         # Combine listbox, status bar, and URL bar
-        layout = urwid.Frame(header=url_bar, body=listbox, footer=footer)
+        layout = urwid.Frame(header=url_bar, body=urwid.Filler(widgets), footer=footer)
 
         return layout, edit
 
