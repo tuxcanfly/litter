@@ -285,6 +285,9 @@ class BrowserApp:
 
     def handle_input(self, key):
         global history
+        if isinstance(self.main_loop.widget, urwid.Overlay):
+            if key not in self.key_map["help"]:
+                return
         if key in self.key_map["quit"]:
             # Show the confirmation dialog
             self.confirm_quit()
