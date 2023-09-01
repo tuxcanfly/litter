@@ -1,2 +1,1 @@
-https://example.com
-https://www.iana.org/domains/example
+https://gothub.dev.projectsegfau.lt/tuxcanfly/litter

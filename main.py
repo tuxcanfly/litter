@@ -1,8 +1,9 @@
 import json
 import requests
 import threading
-import urwid
 import pyperclip
+import urwid
+import urwid_readline
 
 from readability import Document
 from bs4 import BeautifulSoup
@@ -58,6 +59,11 @@ class History:
         self.stack = []
         self.position = -1
 
+    def current(self):
+        if self.position != -1:
+            return self.stack[self.position]
+        return ""
+
     def add(self, url):
         self.stack = self.stack[: self.position + 1]  # Remove forward history
         self.stack.append(url)
@@ -102,6 +108,14 @@ class BrowserApp:
         self.history = History()
         self.bookmarks = Bookmarks()
         self.main_loop = None
+
+    def autocomplete(self, text, state):
+        bookmarks = self.bookmarks.get_bookmarks()
+        tmp = [c for c in bookmarks if c and c.find(text) != -1] if text else bookmarks
+        try:
+            return tmp[state]
+        except (IndexError, TypeError):
+            return None
 
     def load_keymap(self, filename="keymap.json"):
         try:
@@ -277,7 +291,8 @@ class BrowserApp:
         footer = urwid.Pile([help_bar, status_bar])
 
         # URL bar to enter addresses
-        edit = urwid.Edit(" 🔍 " + url)
+        edit = urwid_readline.ReadlineEdit(" 🔍 " + url)
+        edit.enable_autocomplete(self.autocomplete)
         url_bar = urwid.AttrMap(edit, "url_bar", "url_bar_focused")
 
         # Combine listbox, status bar, and URL bar
@@ -333,10 +348,7 @@ class BrowserApp:
             else:
                 self.main_loop.widget = self.help_overlay()
         elif key in self.key_map["bookmark"]:
-            current_url = (
-                self.main_loop.widget.footer.original_widget.text
-            )  # Extracting the current URL from status bar
-            self.bookmarks.save_bookmark(current_url)
+            self.bookmarks.save_bookmark(self.history.current())
         elif key in self.key_map["copy"]:
             listbox = self.main_loop.widget.body
             item, _ = listbox.get_focus()
