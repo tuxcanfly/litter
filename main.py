@@ -76,33 +76,6 @@ superscript_map = {
 }
 
 
-class ClickyText(urwid.Text):
-    ignore_focus = False
-    _selectable = True
-
-    def __init__(self, text, cursor_position=0):
-        self.__super.__init__(text)
-        self._cursor_position = cursor_position
-
-    def render(self, size, focus=False):
-        c = self.__super.render(size, focus)
-        if focus:
-            c = urwid.CompositeCanvas(c)
-            c.cursor = self.get_cursor_coords(size)
-        return c
-
-    def get_cursor_coords(self, size):
-        (maxcol,) = size
-        trans = self.get_line_translation(maxcol)
-        x, y = urwid.text_layout.calc_coords(self.text, trans, self._cursor_position)
-        if maxcol <= x:
-            return None
-        return x, y
-
-    def keypress(self, size, key):
-        return key
-
-
 class History:
     def __init__(self):
         self.stack = []
@@ -276,7 +249,7 @@ class BrowserApp:
 
         elif element.name == "a":
             if element_text:
-                return urwid.AttrWrap(ClickyText(element_text), "link")
+                return urwid.AttrWrap(urwid.SelectableIcon(element_text), "link")
 
         elif element.name == "span":
             children = [
