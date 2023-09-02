@@ -203,7 +203,7 @@ class BrowserApp:
             return urwid.Pile(children)
 
         elif element.name == "br":
-            return urwid.Text("\n")
+            return urwid.Divider()
 
         elif element.name == "center":
             # As terminal doesn't really support centering,
