@@ -1,3 +1,4 @@
+import re
 import json
 import requests
 import threading
@@ -274,8 +275,11 @@ class BrowserApp:
             "h6",
         ]
 
+        if element.name in ["h1", "h2", "h3", "h4", "h5", "h6"]:
+            return urwid.Text(("bold", str(element.string)))
+
         if isinstance(element, NavigableString):
-            return urwid.Text(str(element).replace("\n", " "), align="left")
+            return urwid.Text(re.sub(r"\n\s*", r" ", str(element)), align="left")
 
         if element.name in ["script", "style", "meta"]:
             print(f"Unsupported tag: {element.name}")
@@ -285,6 +289,7 @@ class BrowserApp:
             inline_elements = []  # To hold elements that should be side by side
             block_elements = []  # For vertical stacking of block-level elements
 
+            divider = urwid.Divider()
             for child in element.children:
                 if child != "\n":
                     widget = self.html_to_urwid(child)
@@ -301,6 +306,7 @@ class BrowserApp:
                                 )
                                 inline_elements = []
                             block_elements.append(widget)
+                            block_elements.append(divider)
                         # FIXME: default inline?
                         else:
                             # Otherwise, it's an inline element.
@@ -362,7 +368,7 @@ class BrowserApp:
             return urwid.Pile(list_items)
 
         if element.name == "a":
-            return urwid.AttrWrap(urwid.Text(str(element.string)), "link")
+            return urwid.AttrWrap(ClickyText(str(element.string)), "link")
 
         if element.name in ["span"]:
             children = [
@@ -372,15 +378,6 @@ class BrowserApp:
 
         if element.name in ["strong"]:
             return urwid.Text(("bold", str(element.string)))
-
-        if element.name in ["h1", "h2", "h3", "h4", "h5", "h6"]:
-            children = [
-                self.html_to_urwid(child) for child in element.children if child != "\n"
-            ]
-            if element.string:
-                header_text = urwid.Text(("bold", str(element.string)))
-                children.append(header_text)
-            return urwid.Columns([child for child in children if child])
 
         if element.name == "img":
             # Since we can't display images in terminal, you might want to show the alt text if available
@@ -521,7 +518,9 @@ class BrowserApp:
         url_bar = urwid.AttrMap(edit, "url_bar", "url_bar_focused")
 
         # Combine listbox, status bar, and URL bar
-        layout = urwid.Frame(header=url_bar, body=urwid.Filler(widgets), footer=footer)
+        layout = urwid.Frame(
+            header=url_bar, body=urwid.Filler(widgets, valign="top"), footer=footer
+        )
 
         return layout, edit
 
@@ -614,7 +613,7 @@ class BrowserApp:
         palette = [
             ("status_bar", "black", "white"),
             ("url_bar", "black", "white"),
-            ("link", "yellow", "black"),
+            ("link", "dark blue,underline", ""),
             ("link_focused", "yellow,underline", "black"),
             ("url_bar_focused", "black", "yellow"),
             ("text_focused", "yellow", "black"),
