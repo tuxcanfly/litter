@@ -251,7 +251,9 @@ class BrowserApp:
 
         elif element.name == "a":
             if element_text:
-                return urwid.AttrWrap(urwid.SelectableIcon(element_text), "link")
+                return urwid.AttrWrap(
+                    urwid.SelectableIcon(element_text), "link", "link_focused"
+                )
 
         elif element.name == "span":
             children = [
