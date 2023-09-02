@@ -194,7 +194,9 @@ class BrowserApp:
             children = [
                 self.html_to_urwid(child) for child in element.children if child != "\n"
             ]
-            return urwid.LineBox(urwid.Columns(children))
+            return urwid.LineBox(
+                urwid.Columns([("pack", child) for child in children], dividechars=1)
+            )
 
         elif element.name == "div":
             children = [
