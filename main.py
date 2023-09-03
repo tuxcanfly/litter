@@ -76,6 +76,53 @@ superscript_map = {
 }
 
 
+class TextWithLinks(urwid.WidgetWrap):
+    def __init__(self, markup, on_link_click):
+        self.markup = markup
+        self.on_link_click = on_link_click
+        self.text = urwid.Text(markup)
+        self.focused_item_index = 0
+        self.focusable_items = self.get_focusable_items(markup)
+        self.update_focus(markup)
+        super().__init__(self.text)
+
+    def update_focus(self, markup):
+        rewrite = []
+        index = 0
+        for item in markup:
+            if isinstance(item, tuple) and item[0].startswith("http"):
+                if index == self.focused_item_index:
+                    rewrite.append(("link_focused", item[1]))
+                else:
+                    rewrite.append(("link", item[1]))
+                index += 1
+            else:
+                rewrite.append(item)
+        self.text.set_text(rewrite)
+
+    def get_focusable_items(self, markup):
+        return [
+            item
+            for item in markup
+            if isinstance(item, tuple) and item[0].startswith("http")
+        ]
+
+    def keypress(self, size, key):
+        max_position = len(self.focusable_items) - 1
+        if key == "up" or key == "left":
+            self.focused_item_index = max(0, self.focused_item_index - 1)
+        elif key == "down" or key == "right":
+            self.focused_item_index = min(max_position, self.focused_item_index + 1)
+        elif key == "enter":
+            self.on_link_click(self.focusable_items[self.focused_item_index][0])
+        else:
+            return key
+        self.update_focus(self.markup)
+
+    def selectable(self):
+        return True
+
+
 class History:
     def __init__(self):
         self.stack = []
@@ -404,20 +451,6 @@ class BrowserApp:
                 return
             # Show the confirmation dialog
             self.confirm_quit()
-        elif key in self.key_map["next_line"]:
-            listbox = self.main_loop.widget.body
-            if listbox.focus_position < len(listbox.body) - 1:
-                listbox.set_focus(listbox.focus_position + 1)
-        elif key in self.key_map["prev_line"]:
-            listbox = self.main_loop.widget.body
-            if listbox.focus_position > 0:
-                listbox.set_focus(listbox.focus_position - 1)
-        elif key in self.key_map["first_line"]:
-            listbox = self.main_loop.widget.body
-            listbox.set_focus(0)
-        elif key in self.key_map["last_line"]:
-            listbox = self.main_loop.widget.body
-            listbox.set_focus(len(listbox.body) - 1)
         elif key in self.key_map["enter"]:
             new_url = self.main_loop.edit.get_edit_text()
             if new_url.strip():
@@ -438,12 +471,6 @@ class BrowserApp:
                 self.main_loop.widget = self.help_overlay()
         elif key in self.key_map["bookmark"]:
             self.bookmarks.save_bookmark(self.history.current())
-        elif key in self.key_map["copy"]:
-            listbox = self.main_loop.widget.body
-            item, _ = listbox.get_focus()
-            selected_text = item.base_widget.get_text().strip()[0]
-            # Copy to clipboard
-            pyperclip.copy(selected_text)
 
     def link_pressed(self, button, link):
         self.open(link)

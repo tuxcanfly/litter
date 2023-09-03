@@ -1,17 +1,17 @@
 import urwid
-import typing
 
 
 class TextWithLinks(urwid.WidgetWrap):
     def __init__(self, markup, on_link_click):
+        self.markup = markup
         self.on_link_click = on_link_click
-        self.focusable_items = self.get_focusable_items(markup)
-        self.focused_item_index = 0
-        self.markup = self.get_markup_rewrite(markup)
         self.text = urwid.Text(markup)
+        self.focused_item_index = 0
+        self.focusable_items = self.get_focusable_items(markup)
+        self.update_focus(markup)
         super().__init__(self.text)
 
-    def get_markup_rewrite(self, markup):
+    def update_focus(self, markup):
         rewrite = []
         index = 0
         for item in markup:
@@ -23,7 +23,7 @@ class TextWithLinks(urwid.WidgetWrap):
                 index += 1
             else:
                 rewrite.append(item)
-        return rewrite
+        self.text.set_text(rewrite)
 
     def get_focusable_items(self, markup):
         return [
@@ -42,9 +42,7 @@ class TextWithLinks(urwid.WidgetWrap):
             self.on_link_click(self.focusable_items[self.focused_item_index][0])
         else:
             return key
-        markup = self.get_markup_rewrite(self.markup)
-        self.text.set_text(markup)
-        self.markup = markup
+        self.update_focus(self.markup)
 
     def selectable(self):
         return True
