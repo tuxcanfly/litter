@@ -7,17 +7,23 @@ class TextWithLinks(urwid.WidgetWrap):
         self.on_link_click = on_link_click
         self.focusable_items = self.get_focusable_items(markup)
         self.focused_item_index = 0
-        markup = self.get_markup_rewrite(markup)
+        self.markup = self.get_markup_rewrite(markup)
         self.text = urwid.Text(markup)
         super().__init__(self.text)
 
     def get_markup_rewrite(self, markup):
-        return [
-            ("link", item[1])
-            if isinstance(item, tuple) and item[0].startswith("http")
-            else item
-            for item in markup
-        ]
+        rewrite = []
+        index = 0
+        for item in markup:
+            if isinstance(item, tuple) and item[0].startswith("http"):
+                if index == self.focused_item_index:
+                    rewrite.append(("link_focused", item[1]))
+                else:
+                    rewrite.append(("link", item[1]))
+                index += 1
+            else:
+                rewrite.append(item)
+        return rewrite
 
     def get_focusable_items(self, markup):
         return [
@@ -36,7 +42,9 @@ class TextWithLinks(urwid.WidgetWrap):
             self.on_link_click(self.focusable_items[self.focused_item_index][0])
         else:
             return key
-        self._invalidate()
+        markup = self.get_markup_rewrite(self.markup)
+        self.text.set_text(markup)
+        self.markup = markup
 
     def selectable(self):
         return True
