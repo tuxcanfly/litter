@@ -13,7 +13,7 @@ class TextWithLinks(urwid.WidgetWrap):
 
     def get_markup_rewrite(self, markup):
         return [
-            ("underline", item[1])
+            ("link", item[1])
             if isinstance(item, tuple) and item[0].startswith("http")
             else item
             for item in markup
