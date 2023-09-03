@@ -92,9 +92,13 @@ class TextWithLinks(urwid.WidgetWrap):
         for item in markup:
             if isinstance(item, tuple) and item[0].startswith("http"):
                 if index == self.focused_item_index:
-                    rewrite.append(("link_focused", item[1]))
+                    rewrite.append(
+                        ("link_focused", f"{item[1]} {superscript_map[str(index+1)]}")
+                    )
                 else:
-                    rewrite.append(("link", item[1]))
+                    rewrite.append(
+                        ("link", f"{item[1]} {superscript_map[str(index+1)]}")
+                    )
                 index += 1
             else:
                 rewrite.append(item)

@@ -1,5 +1,18 @@
 import urwid
 
+superscript_map = {
+    "0": "⁰",
+    "1": "¹",
+    "2": "²",
+    "3": "³",
+    "4": "⁴",
+    "5": "⁵",
+    "6": "⁶",
+    "7": "⁷",
+    "8": "⁸",
+    "9": "⁹",
+}
+
 
 class TextWithLinks(urwid.WidgetWrap):
     def __init__(self, markup, on_link_click):
@@ -17,9 +30,13 @@ class TextWithLinks(urwid.WidgetWrap):
         for item in markup:
             if isinstance(item, tuple) and item[0].startswith("http"):
                 if index == self.focused_item_index:
-                    rewrite.append(("link_focused", item[1]))
+                    rewrite.append(
+                        ("link_focused", f"{item[1]} {superscript_map[str(index+1)]}")
+                    )
                 else:
-                    rewrite.append(("link", item[1]))
+                    rewrite.append(
+                        ("link", f"{item[1]} {superscript_map[str(index+1)]}")
+                    )
                 index += 1
             else:
                 rewrite.append(item)
@@ -51,13 +68,14 @@ class TextWithLinks(urwid.WidgetWrap):
 palette = [
     ("link", "underline", ""),
     ("link_focused", "yellow", "black"),
+    ("italics", "italics", ""),
 ]
 
 markup = [
     "I am Thejaswi Puthraya, the owner of this ",
-    ("http://thejaswi.info/", "website ¹"),
+    ("http://thejaswi.info/", "website"),
     " and a freelance software developer. I was born in ",
-    ("https://en.wikipedia.org/wiki/Hyderabad", "Hyderabad ²"),
+    ("https://en.wikipedia.org/wiki/Hyderabad", "Hyderabad"),
     " the city of pearls and the capital of Telangana, India. Ever since I have been living in this city famous for ",
     ("italics", "Irani Chai and"),
     ("italics", " Chalta Hai"),
