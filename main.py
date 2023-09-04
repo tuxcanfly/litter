@@ -128,16 +128,21 @@ class TextWithLinks(urwid.WidgetWrap):
 
 
 class Hyperlink(urwid.SelectableIcon):
-    def __init__(self, text, uri, on_enter):
-        self.uri = uri
-        self.on_enter = on_enter
+    signals = ["click"]
+
+    def __init__(self, text, on_press, user_data=None):
         super().__init__(text)
 
+        # The old way of listening for a change was to pass the callback
+        # in to the constructor.  Just convert it to the new way:
+        if on_press:
+            urwid.connect_signal(self, "click", on_press, user_data)
+
     def keypress(self, size, key):
-        if key == "enter":
-            self.on_enter(self.uri)
-        else:
+        if self._command_map[key] != urwid.ACTIVATE:
             return key
+
+        self._emit("click")
 
 
 class HTMLFlow(urwid.GridFlow):
@@ -370,7 +375,9 @@ class BrowserApp:
             if element_text:
                 return urwid.AttrWrap(
                     Hyperlink(
-                        element_text, element.get("href", "#"), self.link_pressed
+                        element_text,
+                        on_press=self.link_pressed,
+                        user_data=element.get("href", "#"),
                     ),
                     "link",
                     "link_focused",
