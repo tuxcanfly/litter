@@ -413,11 +413,14 @@ class BrowserApp:
             )
 
         elif element.name == "a":
+            href = element.get("href", "#")
+            if not href.startswith("http"):
+                href = urljoin(self.history.current(), href)
             return urwid.AttrWrap(
                 Hyperlink(
                     element_text,
                     on_press=self.link_pressed,
-                    user_data=element.get("href", "#"),
+                    user_data=href,
                 ),
                 "link",
                 "link_focused",
