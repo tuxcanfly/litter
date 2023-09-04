@@ -127,6 +127,74 @@ class TextWithLinks(urwid.WidgetWrap):
         return True
 
 
+class Hyperlink(urwid.SelectableIcon):
+    def __init__(self, text, uri, on_enter):
+        self.uri = uri
+        self.on_enter = on_enter
+        super().__init__(text)
+
+    def keypress(self, size, key):
+        if key == "enter":
+            self.on_enter(self.uri)
+        else:
+            return key
+
+
+class HTMLFlow(urwid.GridFlow):
+    def generate_display_widget(self, size: tuple[int]) -> urwid.Divider | urwid.Pile:
+        """
+        Actually generate display widget (ignoring cache)
+        """
+        (maxcol,) = size
+        divider = urwid.Divider()
+        if not self.contents:
+            return divider
+
+        if self.v_sep > 1:
+            # increase size of divider
+            divider.top = self.v_sep - 1
+
+        c = None
+        p = urwid.Pile([])
+        used_space = 0
+
+        for i, (w, (width_type, width_amount)) in enumerate(self.contents):
+            width_amount = len(w.text)
+            if c is None or maxcol - used_space < width_amount:
+                # starting a new row
+                if self.v_sep:
+                    p.contents.append((divider, p.options()))
+                c = urwid.Columns([], self.h_sep)
+                column_focused = False
+                pad = urwid.Padding(c, self.align)
+                # extra attribute to reference contents position
+                pad.first_position = i
+                p.contents.append((pad, p.options()))
+
+            c.contents.append((w, c.options(urwid.GIVEN, width_amount)))
+            if (i == self.focus_position) or (not column_focused and w.selectable()):
+                c.focus_position = len(c.contents) - 1
+                column_focused = True
+            if i == self.focus_position:
+                p.focus_position = len(p.contents) - 1
+            used_space = sum(x[1][1] for x in c.contents) + self.h_sep * len(c.contents)
+            if width_amount > maxcol:
+                # special case: display is too narrow for the given
+                # width so we remove the Columns for better behaviour
+                # FIXME: determine why this is necessary
+                pad.original_widget = w
+            pad.width = used_space - self.h_sep
+
+        if self.v_sep:
+            # remove first divider
+            del p.contents[:1]
+        else:
+            # Ensure p __selectable is updated
+            p._contents_modified()
+
+        return p
+
+
 class History:
     def __init__(self):
         self.stack = []
@@ -245,7 +313,7 @@ class BrowserApp:
             children = [
                 self.html_to_urwid(child) for child in element.children if child != "\n"
             ]
-            return urwid.LineBox(urwid.GridFlow(children, 256, 1, 1, "left"))
+            return urwid.LineBox(HTMLFlow(children, 256, 1, 1, "left"))
 
         elif element.name == "div":
             children = [
@@ -301,7 +369,11 @@ class BrowserApp:
         elif element.name == "a":
             if element_text:
                 return urwid.AttrWrap(
-                    urwid.SelectableIcon(element_text), "link", "link_focused"
+                    Hyperlink(
+                        element_text, element.get("href", "#"), self.link_pressed
+                    ),
+                    "link",
+                    "link_focused",
                 )
 
         elif element.name == "span":
@@ -318,7 +390,7 @@ class BrowserApp:
             alt_text = element.get("alt", "[Image]")
             if alt_text:
                 return urwid.Text(alt_text)
-            return []
+            return None
 
         elif element.name == "abbr":
             # Using underline for abbreviation
@@ -360,10 +432,10 @@ class BrowserApp:
             children = [
                 self.html_to_urwid(child) for child in element.children if child != "\n"
             ]
-            return urwid.Pile([child for child in children if child])
+            return urwid.LineBox(urwid.GridFlow(children, 256, 1, 1, "left"))
 
         elif element.name in ["script", "style", "meta", "style"]:
-            return []
+            return None
 
         else:
             children = [
@@ -476,7 +548,7 @@ class BrowserApp:
         elif key in self.key_map["bookmark"]:
             self.bookmarks.save_bookmark(self.history.current())
 
-    def link_pressed(self, button, link):
+    def link_pressed(self, link):
         self.open(link)
 
     def confirm_quit(self):
