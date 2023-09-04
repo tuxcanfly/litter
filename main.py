@@ -394,7 +394,9 @@ class BrowserApp:
                 if isinstance(li, Tag):
                     list_items.append(urwid.Text(BULLET + " " + li.get_text().strip()))
             return urwid.LineBox(
-                urwid.Padding(HTMLFlow(list_items, 256, 1, 1, "left"), left=1, right=1)
+                urwid.Padding(
+                    urwid.Columns([("pack", item) for item in list_items if item])
+                )
             )
 
         elif element.name == "li":
@@ -405,7 +407,9 @@ class BrowserApp:
                         urwid.Text("{}. ".format(idx + 1) + " " + li.get_text().strip())
                     )
             return urwid.LineBox(
-                urwid.Padding(HTMLFlow(list_items, 256, 1, 1, "left"), left=1, right=1)
+                urwid.Padding(
+                    urwid.Columns([("pack", item) for item in list_items if item])
+                )
             )
 
         elif element.name == "a":
@@ -475,10 +479,10 @@ class BrowserApp:
             children = [
                 self.html_to_urwid(child) for child in element.children if child != "\n"
             ]
-            return urwid.Padding(
-                HTMLFlow([child for child in children if child], 256, 1, 1, "left"),
-                left=1,
-                right=1,
+            return urwid.LineBox(
+                urwid.Padding(
+                    urwid.Columns([("pack", child) for child in children if child]),
+                )
             )
 
         elif element.name in ["script", "style", "meta", "style"]:
