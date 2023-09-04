@@ -347,7 +347,11 @@ class BrowserApp:
                 self.html_to_urwid(child) for child in element.children if child != "\n"
             ]
             return urwid.LineBox(
-                urwid.Padding(HTMLFlow(children, 256, 1, 1, "left"), left=1, right=1)
+                urwid.Padding(
+                    HTMLFlow([child for child in children if child], 256, 1, 1, "left"),
+                    left=1,
+                    right=1,
+                )
             )
 
         elif element.name == "div":
@@ -472,8 +476,10 @@ class BrowserApp:
             children = [
                 self.html_to_urwid(child) for child in element.children if child != "\n"
             ]
-            return urwid.LineBox(
-                urwid.Columns([("pack", child) for child in children], dividechars=1)
+            return urwid.Padding(
+                HTMLFlow([child for child in children if child], 256, 1, 1, "left"),
+                left=1,
+                right=1,
             )
 
         elif element.name in ["script", "style", "meta", "style"]:
