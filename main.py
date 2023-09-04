@@ -357,7 +357,7 @@ class BrowserApp:
             children = [
                 self.html_to_urwid(child) for child in element.children if child != "\n"
             ]
-            return urwid.Pile(children)
+            return urwid.Pile([child for child in children if child])
 
         elif element.name == "br":
             return urwid.Divider()
@@ -395,7 +395,9 @@ class BrowserApp:
                     list_items.append(urwid.Text(BULLET + " " + li.get_text().strip()))
             return urwid.LineBox(
                 urwid.Padding(
-                    urwid.Columns([("pack", item) for item in list_items if item])
+                    urwid.Columns(
+                        [("pack", item) for item in list_items if item], dividechars=1
+                    )
                 )
             )
 
@@ -408,7 +410,9 @@ class BrowserApp:
                     )
             return urwid.LineBox(
                 urwid.Padding(
-                    urwid.Columns([("pack", item) for item in list_items if item])
+                    urwid.Columns(
+                        [("pack", item) for item in list_items if item], dividechars=1
+                    )
                 )
             )
 
@@ -430,7 +434,7 @@ class BrowserApp:
             children = [
                 self.html_to_urwid(child) for child in element.children if child != "\n"
             ]
-            return urwid.Columns([child for child in children if child])
+            return urwid.Columns([child for child in children if child], dividechars=1)
 
         elif element.name == "strong":
             return urwid.Text(("bold", element_text))
@@ -484,7 +488,9 @@ class BrowserApp:
             ]
             return urwid.LineBox(
                 urwid.Padding(
-                    urwid.Columns([("pack", child) for child in children if child]),
+                    urwid.Columns(
+                        [("pack", child) for child in children if child], dividechars=1
+                    ),
                 )
             )
 
