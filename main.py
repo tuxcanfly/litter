@@ -144,6 +144,31 @@ class Hyperlink(urwid.SelectableIcon):
 
         self._emit("click")
 
+    def mouse_event(
+        self, size: tuple[int], event, button: int, x: int, y: int, focus: bool
+    ) -> bool:
+        """
+        Send 'click' signal on button 1 press.
+
+        >>> size = (15,)
+        >>> b = Button(u"Ok")
+        >>> clicked_buttons = []
+        >>> def handle_click(button):
+        ...     clicked_buttons.append(button.label)
+        >>> key = connect_signal(b, 'click', handle_click)
+        >>> b.mouse_event(size, 'mouse press', 1, 4, 0, True)
+        True
+        >>> b.mouse_event(size, 'mouse press', 2, 4, 0, True) # ignored
+        False
+        >>> clicked_buttons # ... = u in Python 2
+        [...'Ok']
+        """
+        if button != 1 or not urwid.util.is_mouse_press(event):
+            return False
+
+        self._emit("click")
+        return True
+
 
 class HTMLFlow(urwid.GridFlow):
     def generate_display_widget(self, size: tuple[int]) -> urwid.Divider | urwid.Pile:
@@ -164,7 +189,8 @@ class HTMLFlow(urwid.GridFlow):
         used_space = 0
 
         for i, (w, (width_type, width_amount)) in enumerate(self.contents):
-            width_amount = len(w.text)
+            if hasattr(w, "text"):
+                width_amount = len(w.text)
             if c is None or maxcol - used_space < width_amount:
                 # starting a new row
                 if self.v_sep:
@@ -309,7 +335,9 @@ class BrowserApp:
 
     @classmethod
     def html_to_urwid(self, element):
-        element_text = re.sub(r"\n\s*", r" ", str(element.string))
+        element_text = ""
+        if element.string:
+            element_text = re.sub(r"\n\s*", r" ", str(element.string))
 
         if element.name in ["h1", "h2", "h3", "h4", "h5", "h6"]:
             return urwid.Text(("bold", element_text))
@@ -318,7 +346,9 @@ class BrowserApp:
             children = [
                 self.html_to_urwid(child) for child in element.children if child != "\n"
             ]
-            return urwid.LineBox(HTMLFlow(children, 256, 1, 1, "left"))
+            return urwid.LineBox(
+                urwid.Padding(HTMLFlow(children, 256, 1, 1, "left"), left=1, right=1)
+            )
 
         elif element.name == "div":
             children = [
@@ -335,11 +365,11 @@ class BrowserApp:
             # add some sort of separator or visual cue
             return self.html_to_urwid(element.contents[0])
 
-        elif element.name == "em":
+        elif element.name in ["i", "em", "cite"]:
             return urwid.Text(("italic", element_text))
 
         elif element.name == "code":
-            return urwid.AttrWrap(urwid.Text(element_text), "code_style")
+            return urwid.Text(("code", element_text))
 
         elif element.name == "details":
             summary = element.find("summary")
@@ -360,7 +390,9 @@ class BrowserApp:
             for idx, li in enumerate(element.children):
                 if isinstance(li, Tag):
                     list_items.append(urwid.Text(BULLET + " " + li.get_text().strip()))
-            return urwid.Pile(list_items)
+            return urwid.LineBox(
+                urwid.Padding(HTMLFlow(list_items, 256, 1, 1, "left"), left=1, right=1)
+            )
 
         elif element.name == "li":
             list_items = []
@@ -369,19 +401,20 @@ class BrowserApp:
                     list_items.append(
                         urwid.Text("{}. ".format(idx + 1) + " " + li.get_text().strip())
                     )
-            return urwid.Pile(list_items)
+            return urwid.LineBox(
+                urwid.Padding(HTMLFlow(list_items, 256, 1, 1, "left"), left=1, right=1)
+            )
 
         elif element.name == "a":
-            if element_text:
-                return urwid.AttrWrap(
-                    Hyperlink(
-                        element_text,
-                        on_press=self.link_pressed,
-                        user_data=element.get("href", "#"),
-                    ),
-                    "link",
-                    "link_focused",
-                )
+            return urwid.AttrWrap(
+                Hyperlink(
+                    element_text,
+                    on_press=self.open,
+                    user_data=element.get("href", "#"),
+                ),
+                "link",
+                "link_focused",
+            )
 
         elif element.name == "span":
             children = [
@@ -439,7 +472,9 @@ class BrowserApp:
             children = [
                 self.html_to_urwid(child) for child in element.children if child != "\n"
             ]
-            return urwid.LineBox(urwid.GridFlow(children, 256, 1, 1, "left"))
+            return urwid.LineBox(
+                urwid.Columns([("pack", child) for child in children], dividechars=1)
+            )
 
         elif element.name in ["script", "style", "meta", "style"]:
             return None
@@ -585,6 +620,8 @@ class BrowserApp:
     def run(self):
         url = "https://simple-web.org/"
         palette = [
+            ("bold", "bold", ""),
+            ("italic", "italics", ""),
             ("status_bar", "black", "white"),
             ("url_bar", "black", "white"),
             ("link", "dark blue,underline", ""),
