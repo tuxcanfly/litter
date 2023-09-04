@@ -333,7 +333,6 @@ class BrowserApp:
             ("relative", 30),
         )
 
-    @classmethod
     def html_to_urwid(self, element):
         element_text = ""
         if element.string:
@@ -413,7 +412,7 @@ class BrowserApp:
             return urwid.AttrWrap(
                 Hyperlink(
                     element_text,
-                    on_press=self.open,
+                    on_press=self.link_pressed,
                     user_data=element.get("href", "#"),
                 ),
                 "link",
@@ -491,7 +490,6 @@ class BrowserApp:
             ]
             return urwid.Pile([child for child in children if child])
 
-    @classmethod
     def fetch_and_clean_article(self, url):
         """
         Fetch and clean article from a URL.
@@ -520,7 +518,6 @@ class BrowserApp:
         except requests.RequestException as e:
             return [f"Error: {str(e)}"], [], ""
 
-    @classmethod
     def fetch_content_async(self, url, callback):
         def worker():
             content, links, title = self.fetch_and_clean_article(url)
@@ -596,7 +593,7 @@ class BrowserApp:
         elif key in self.key_map["bookmark"]:
             self.bookmarks.save_bookmark(self.history.current())
 
-    def link_pressed(self, link):
+    def link_pressed(self, widget, link):
         self.open(link)
 
     def confirm_quit(self):
