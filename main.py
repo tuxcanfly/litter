@@ -399,7 +399,9 @@ class BrowserApp:
                     list_items.append(urwid.Text(BULLET + " " + li.get_text().strip()))
             return urwid.LineBox(
                 urwid.Padding(
-                    HTMLFlow([item for item in list_items if item], 256, 1, 1, "left")
+                    urwid.Columns(
+                        [("pack", item) for item in list_items if item], dividechars=1
+                    )
                 )
             )
 
@@ -412,7 +414,9 @@ class BrowserApp:
                     )
             return urwid.LineBox(
                 urwid.Padding(
-                    HTMLFlow([item for item in list_items if item], 256, 1, 1, "left")
+                    urwid.Columns(
+                        [("pack", item) for item in list_items if item], dividechars=1
+                    )
                 )
             )
 
@@ -469,11 +473,7 @@ class BrowserApp:
             children = [
                 self.html_to_urwid(child) for child in element.children if child != "\n"
             ]
-            return urwid.LineBox(
-                urwid.Padding(
-                    HTMLFlow([child for child in children if child], 256, 1, 1, "left")
-                )
-            )
+            return urwid.Pile(children)
 
         elif element.name == "hr":
             return urwid.Divider(div_char="━")
@@ -492,7 +492,9 @@ class BrowserApp:
             ]
             return urwid.LineBox(
                 urwid.Padding(
-                    HTMLFlow([child for child in children if child], 256, 1, 1, "left")
+                    urwid.Columns(
+                        [("pack", child) for child in children if child], dividechars=1
+                    ),
                 )
             )
 
