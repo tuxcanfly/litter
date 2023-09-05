@@ -335,6 +335,10 @@ class BrowserApp:
 
     def html_to_urwid(self, element):
         element_text = ""
+
+        if isinstance(element, list):
+            return None
+
         if element.string:
             element_text = re.sub(r"\n\s*", r" ", str(element.string))
 
@@ -455,7 +459,7 @@ class BrowserApp:
 
         elif element.name == "noscript":
             # Since we don't run scripts in terminal, always showing noscript content
-            return self.html_to_urwid(element.contents[0])
+            return self.html_to_urwid(element.contents)
 
         elif element.name == "button":
             # A basic button representation, more interaction would need more work
