@@ -396,7 +396,8 @@ class BrowserApp:
             list_items = []
             for idx, li in enumerate(element.children):
                 if isinstance(li, Tag):
-                    list_items.append(urwid.Text(BULLET + " " + li.get_text().strip()))
+                    element_text = re.sub(r"\n\s*", r" ", str(li.get_text().strip()))
+                    list_items.append(urwid.Text(BULLET + " " + element_text))
             return urwid.LineBox(
                 urwid.Padding(
                     urwid.Columns(
@@ -409,8 +410,9 @@ class BrowserApp:
             list_items = []
             for idx, li in enumerate(element.children):
                 if isinstance(li, Tag):
+                    element_text = re.sub(r"\n\s*", r" ", str(li.get_text().strip()))
                     list_items.append(
-                        urwid.Text("{}. ".format(idx + 1) + " " + li.get_text().strip())
+                        urwid.Text("{}. ".format(idx + 1) + " " + element_text)
                     )
             return urwid.LineBox(
                 urwid.Padding(
@@ -455,6 +457,8 @@ class BrowserApp:
             return urwid.Text(("underline", element_text))
 
         elif element.name == "form":
+            # disabled
+            return []
             # This would simply list out children, more complex interaction would need more work
             children = [
                 self.html_to_urwid(child) for child in element.children if child != "\n"
@@ -480,7 +484,25 @@ class BrowserApp:
 
         elif element.name == "input":
             # Simply create a basic text edit box for now.
-            return urwid.Edit()
+            return urwid.Edit(element_text)
+
+        elif element.name == "select":
+            list_items = []
+            for idx, option in enumerate(element.children):
+                if isinstance(option, Tag):
+                    element_text = re.sub(
+                        r"\n\s*", r" ", str(option.get_text().strip())
+                    )
+                    list_items.append(
+                        urwid.Text("{}. ".format(idx + 1) + " " + element_text)
+                    )
+            return urwid.LineBox(
+                urwid.Padding(
+                    urwid.Columns(
+                        [("pack", item) for item in list_items if item], dividechars=1
+                    )
+                )
+            )
 
         elif isinstance(element, NavigableString):
             return urwid.Text(element_text, align="left")
