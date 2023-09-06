@@ -477,7 +477,7 @@ class BrowserApp:
             children = [
                 self.html_to_urwid(child) for child in element.children if child != "\n"
             ]
-            return urwid.Pile(children)
+            return urwid.LineBox(urwid.Padding(urwid.Pile(children)))
 
         elif element.name == "hr":
             return urwid.Divider(div_char="━")
