@@ -513,11 +513,7 @@ class BrowserApp:
                 self.html_to_urwid(child) for child in element.children if child != "\n"
             ]
             return urwid.LineBox(
-                urwid.Padding(
-                    urwid.Columns(
-                        [("pack", child) for child in children if child], dividechars=1
-                    ),
-                )
+                urwid.Pile([("pack", child) for child in children if child])
             )
 
         elif element.name in ["script", "style", "meta", "style"]:
