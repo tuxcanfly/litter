@@ -406,7 +406,7 @@ class BrowserApp:
         )
 
     def run(self):
-        url = "https://example.com"
+        url = "https://simple-web.org/"
         palette = [
             ("status_bar", "black", "white"),
             ("url_bar", "black", "white"),
