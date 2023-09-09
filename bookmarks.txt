@@ -1,2 +1,3 @@
+https://simple-web.org/
 https://gothub.dev.projectsegfau.lt/tuxcanfly/litter
 https://codeberg.org/teddit/teddit/src/branch/main/instances.json
