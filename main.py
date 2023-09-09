@@ -54,7 +54,7 @@ DEFAULT_KEY_MAP = {
 }
 
 DEFAULT_REDIRECT = {
-    "twitter.com": "nitter.net",
+    "twitter.com": "nitter.poast.org",
     "www.reddit.com": "teddit.pussthecat.org",
     "github.com": "gh.bloatcat.tk",
 }
