@@ -340,12 +340,16 @@ class BrowserApp:
             return None
 
         if element.string:
-            element_text = re.sub(r"\n\s*", r" ", str(element.string))
+            element_text = re.sub(r"\n\s*", r" ", element.get_text(strip=True).strip())
 
         if element.name in ["h1", "h2", "h3", "h4", "h5", "h6"]:
             return urwid.Text(("bold", element_text))
 
         elif element.name == "p":
+            # empty
+            if element_text == "" and not element.findAll():
+                return None
+
             children = [
                 self.html_to_urwid(child) for child in element.children if child != "\n"
             ]
