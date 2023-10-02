@@ -478,8 +478,8 @@ class BrowserApp:
 
             # Additional checks for content type
             content_type = response.headers.get("Content-Type")
-            if not content_type.startswith("text"):
-                return ["Error: Content type is not HTML."], [], ""
+            if content_type and not content_type.startswith("text"):
+                return [urwid.Text("Error: Content type is not HTML.")], [], ""
 
             doc = Document(response.text)
             page_title = doc.title()
@@ -490,7 +490,7 @@ class BrowserApp:
 
             return widgets, [], page_title
         except requests.RequestException as e:
-            return [f"Error: {str(e)}"], [], ""
+            return [urwid.Text(f"Error: {str(e)}")], [], ""
 
     def fetch_content_async(self, url, callback):
         def worker():
@@ -595,7 +595,7 @@ class BrowserApp:
         )
 
     def run(self):
-        url = "https://simple-web.org/"
+        url = "https://example.com/"
         palette = [
             ("bold", "bold", ""),
             ("italic", "italics", ""),
